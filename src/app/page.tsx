@@ -24,8 +24,28 @@ import { AuditRunner } from '@/modules/audits/components/AuditRunner';
 import { KPIDashboard } from '@/modules/dashboard/components/KPIDashboard';
 import { IndexedDBManager } from '@/modules/offline/IndexedDBManager';
 import { ChecklistSchema, AuditSessionData } from '@/types/schema';
+import { DynamicRunnerView } from '@/modules/components/DynamicRunnerView';
 
-type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report';
+type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report' | 'dynamic_runner';
+
+// Default empty schema for new blank template v2 (dynamic component engine)
+const BLANK_SCHEMA_V2: any = {
+  title: 'New Dynamic Audit Checklist',
+  description: 'Create your dynamic multi-component audit template',
+  version: 2,
+  components: [
+    {
+      id: `comp_header`,
+      type: 'header',
+      title: 'General Scope & Inspection Info',
+      subtitle: 'Facility Assessment Overview',
+      description: 'Record auditor, date, and basic details.',
+      required: true,
+      category: 'Overview',
+      riskLevel: 'LOW'
+    }
+  ]
+};
 
 // Default empty schema for new blank template
 const BLANK_SCHEMA: ChecklistSchema = {
@@ -155,9 +175,23 @@ export default function HomePage() {
     setView('builder');
   };
 
+  // --- Handler: Create Blank Template V2 ---
+  const handleCreateBlankV2 = () => {
+    const blankWithId = {
+      ...BLANK_SCHEMA_V2,
+      id: `tpl_${Math.random().toString(36).substr(2, 9)}`,
+      components: BLANK_SCHEMA_V2.components.map((comp: any) => ({
+        ...comp,
+        id: `comp_${Math.random().toString(36).substr(2, 9)}`
+      }))
+    };
+    setActiveSchema(blankWithId as any);
+    setView('builder');
+  };
+
   // --- Handler: Save Draft ---
-  const handleSaveDraft = async (schema: ChecklistSchema) => {
-    const schemaWithId = { ...schema, id: (schema as any).id || `tpl_${Math.random().toString(36).substr(2, 9)}` };
+  const handleSaveDraft = async (schema: any) => {
+    const schemaWithId = { ...schema, id: schema.id || `tpl_${Math.random().toString(36).substr(2, 9)}` };
     await IndexedDBManager.saveTemplate(schemaWithId);
     setTemplates(prev => {
       const idx = prev.findIndex(t => t.id === schemaWithId.id);
@@ -172,8 +206,8 @@ export default function HomePage() {
   };
 
   // --- Handler: Publish Template ---
-  const handlePublish = async (schema: ChecklistSchema) => {
-    const schemaWithId = { ...schema, id: (schema as any).id || `tpl_${Math.random().toString(36).substr(2, 9)}` };
+  const handlePublish = async (schema: any) => {
+    const schemaWithId = { ...schema, id: schema.id || `tpl_${Math.random().toString(36).substr(2, 9)}` };
     await IndexedDBManager.saveTemplate(schemaWithId);
     setTemplates(prev => {
       const idx = prev.findIndex(t => t.id === schemaWithId.id);
@@ -205,7 +239,11 @@ export default function HomePage() {
   const handleStartAudit = (template: ChecklistSchema & { id: string }) => {
     setActiveSchema(template);
     setActiveSession(null);
-    setView('runner');
+    if ((template as any).version === 2) {
+      setView('dynamic_runner');
+    } else {
+      setView('runner');
+    }
   };
 
   // --- Handler: Save Audit Session ---
@@ -244,6 +282,28 @@ export default function HomePage() {
     const template = templates.find(t => t.id === session.checklistId);
     if (!template) {
       alert('Template not found for this session.');
+      return;
+    }
+
+    if ((template as any).version === 2) {
+      try {
+        const res = await fetch('/api/reports/dynamic', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schema: template, session, format: 'pdf' })
+        });
+        if (!res.ok) throw new Error('Failed to generate PDF');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Audit_Report_${template.title.replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e: any) {
+        alert(`PDF generation failed: ${e.message}`);
+      }
       return;
     }
 
@@ -323,6 +383,7 @@ export default function HomePage() {
             {([
               { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
               { key: 'upload', label: 'Templates', icon: <FileText className="w-4 h-4" /> },
+              { key: 'dynamic_runner', label: 'Dynamic Engine v2', icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
             ] as { key: AppView; label: string; icon: React.ReactNode }[]).map(item => (
               <button
                 key={item.key}
@@ -381,7 +442,7 @@ export default function HomePage() {
             </div>
 
             {/* Upload Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* DOCX Upload Card */}
               <div
                 onClick={() => fileInputRef.current?.click()}
@@ -407,16 +468,30 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Blank Template Card */}
+              {/* Blank Template Card (V1) */}
               <div
                 onClick={handleCreateBlank}
                 className="glass-panel p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:border-primary/40 group min-h-[200px]"
               >
                 <Sparkles className="w-10 h-10 text-primary/60 group-hover:text-primary transition-colors group-hover:scale-110 transition-transform" />
                 <div className="text-center">
-                  <span className="text-sm font-bold text-foreground block">Create Blank Template</span>
+                  <span className="text-sm font-bold text-foreground block">Create Standard Template (v1)</span>
                   <span className="text-[10px] text-muted-foreground block mt-1">
-                    Start from scratch using the visual no-code builder with drag sections.
+                    Build classic checklists with custom sections and standard fields.
+                  </span>
+                </div>
+              </div>
+
+              {/* Blank Template Card (V2 - Dynamic Components) */}
+              <div
+                onClick={handleCreateBlankV2}
+                className="glass-panel p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:border-primary/40 group min-h-[200px] border-amber-500/20 hover:border-amber-500/40"
+              >
+                <Sparkles className="w-10 h-10 text-amber-500/60 group-hover:text-amber-500 transition-colors group-hover:scale-110 transition-transform" />
+                <div className="text-center">
+                  <span className="text-sm font-bold text-foreground block">Create Dynamic Template (v2)</span>
+                  <span className="text-[10px] text-muted-foreground block mt-1">
+                    Build dynamic checklist, spreadsheet calculation grids, signatures, and camera modules.
                   </span>
                 </div>
               </div>
@@ -436,7 +511,7 @@ export default function HomePage() {
                         <div>
                           <span className="text-sm font-bold text-foreground block">{template.title}</span>
                           <span className="text-[10px] text-muted-foreground block mt-0.5">
-                            {template.sections.length} sections • v{template.version} • {template.description?.substring(0, 60)}
+                            {template.version === 2 ? (template as any).components?.length : template.sections?.length} sections/components • v{template.version} • {template.description?.substring(0, 60)}
                           </span>
                         </div>
                       </div>
@@ -521,6 +596,11 @@ export default function HomePage() {
               />
             </div>
           </div>
+        )}
+
+        {/* DYNAMIC RUNNER VIEW */}
+        {view === 'dynamic_runner' && activeSchema && (
+          <DynamicRunnerView schema={activeSchema as any} onBack={() => setView('dashboard')} />
         )}
 
       </main>
