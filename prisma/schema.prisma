@@ -1,0 +1,178 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// IAM & Tenancy
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  clients   Client[]
+}
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  name           String?
+  passwordHash   String
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roleId         String
+  role           Role          @relation(fields: [roleId], references: [id])
+  auditSessions  AuditSession[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique // e.g., 'ADMIN', 'AUDITOR', 'VIEWER'
+  permissions Permission[]
+  users       User[]
+}
+
+model Permission {
+  id    String @id @default(uuid())
+  action String // e.g., 'read:checklists', 'write:checklists'
+  roles  Role[]
+}
+
+// Customers & Hierarchy
+model Client {
+  id             String       @id @default(uuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sites          Site[]
+  checklists     Checklist[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Site {
+  id            String         @id @default(uuid())
+  name          String
+  address       String?
+  clientId      String
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  auditSessions AuditSession[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// Checklist Templates (Schema definitions)
+model Checklist {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  clientId    String?
+  client      Client?       @relation(fields: [clientId], references: [id])
+  version     Int           @default(1)
+  status      String        @default("Draft") // Draft, Published
+  sections    TemplateSection[]
+  sessions    AuditSession[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model TemplateSection {
+  id          String          @id @default(uuid())
+  checklistId String
+  checklist   Checklist       @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  orderIndex  Int
+  type        String          @default("checklist") // header, checklist, observation, table, signature
+  fields      TemplateField[]
+  tables      TemplateTable[]
+}
+
+model TemplateField {
+  id          String          @id @default(uuid())
+  sectionId   String
+  section     TemplateSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title       String
+  type        String          // text, textarea, yes_no, checkbox, select, score, image, signature
+  required    Boolean         @default(false)
+  riskLevel   String          @default("LOW") // HIGH, MEDIUM, LOW, NONE
+  recoMapping String?         // Default recommendation if fail / non-compliant
+  orderIndex  Int
+  responses   Response[]
+}
+
+model TemplateTable {
+  id          String          @id @default(uuid())
+  sectionId   String
+  section     TemplateSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title       String
+  columnsJson String          // JSON array of column headers
+  rowsJson    String          // JSON array of row values (or cells config)
+  orderIndex  Int
+}
+
+// Audit Sessions (Execution)
+model AuditSession {
+  id             String       @id @default(uuid())
+  checklistId    String
+  checklist      Checklist    @relation(fields: [checklistId], references: [id])
+  siteId         String
+  site           Site         @relation(fields: [siteId], references: [id])
+  auditorId      String
+  auditor        User         @relation(fields: [auditorId], references: [id])
+  status         String       @default("In_Progress") // In_Progress, Completed, Synced
+  startedAt      DateTime     @default(now())
+  completedAt    DateTime?
+  responses      Response[]
+  photos         Photo[]
+  reports        Report[]
+}
+
+model Response {
+  id             String       @id @default(uuid())
+  sessionId      String
+  session        AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  fieldId        String
+  field          TemplateField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  value          String       // Stringified answer (text, YES/NO/NA, or custom input)
+  remarks        String?
+  recommendation String?
+  status         String       @default("Open") // For observation/risk findings: Open, Resolved
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Photo {
+  id             String       @id @default(uuid())
+  sessionId      String
+  session        AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  fileName       String
+  mimeType       String
+  base64Data     String       // Offline support: Base64 string for sync caching
+  caption        String?
+  createdAt      DateTime     @default(now())
+}
+
+model Report {
+  id             String       @id @default(uuid())
+  sessionId      String
+  session        AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  filePath       String
+  fileType       String       // PDF, DOCX
+  generatedAt    DateTime     @default(now())
+}
+
+model KPISnapshot {
+  id             String   @id @default(uuid())
+  timestamp      DateTime @default(now())
+  complianceRate Float
+  nonCompliant   Int
+  highRisksCount Int
+  categoryScores String   // JSON string of scores per category
+}
