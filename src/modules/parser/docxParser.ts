@@ -27,8 +27,11 @@ export async function parseDocx(fileBuffer: Buffer, fileName: string): Promise<C
   
   // Determine title from file name or first H1/strong text
   let docTitle = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+  const firstHeading = $('h1, h2, h3').first().text().trim();
   const firstStrong = $('p strong').first().text().trim();
-  if (firstStrong && firstStrong.length > 10 && firstStrong.length < 100) {
+  if (firstHeading && firstHeading.length > 5 && firstHeading.length < 120) {
+    docTitle = firstHeading;
+  } else if (firstStrong && firstStrong.length > 10 && firstStrong.length < 100) {
     docTitle = firstStrong;
   }
   
@@ -65,7 +68,19 @@ export async function parseDocx(fileBuffer: Buffer, fileName: string): Promise<C
         (uppercaseCols[0].includes('BRANCH') || 
          uppercaseCols[0].includes('ADDRESS') || 
          uppercaseCols[0].includes('LOAD') || 
-         uppercaseCols[0].includes('DATE'))) {
+         uppercaseCols[0].includes('DATE') ||
+         uppercaseCols[0].includes('CLIENT') ||
+         uppercaseCols[0].includes('AUDITOR') ||
+         uppercaseCols[0].includes('LOCATION') ||
+         uppercaseCols[0].includes('DEPARTMENT') ||
+         uppercaseCols[0].includes('REF') ||
+         uppercaseCols[0].includes('MANAGER') ||
+         uppercaseCols[0].includes('SITE') ||
+         uppercaseCols[0].includes('PROJECT') ||
+         uppercaseCols[0].includes('COMPANY') ||
+         uppercaseCols[0].includes('GENERAL INFO') ||
+         uppercaseCols[0].includes('TITLE') ||
+         uppercaseCols[0].includes('NAME'))) {
       
       const fields: TemplateFieldSchema[] = [];
       
@@ -102,7 +117,16 @@ export async function parseDocx(fileBuffer: Buffer, fileName: string): Promise<C
     
     // Case 2: YES/NO Questionnaires (Checklist, e.g. Table 6 - Safety Questioner)
     // Check if any column header represents choices or DETAILS like YES/NO
-    const hasYesNoHeader = uppercaseCols.some(c => c.includes('YES/NO') || c.includes('DETAILS') || c.includes('STATUS'));
+    const hasYesNoHeader = uppercaseCols.some(c => 
+      c.includes('YES/NO') || 
+      c.includes('YES / NO') || 
+      c.includes('STATUS') || 
+      c.includes('COMPLIANCE') || 
+      c.includes('COMPLY') || 
+      c.includes('MET') || 
+      c.includes('PASS/FAIL') || 
+      c.includes('CONFORMANCE')
+    );
     const isDetailsColumnYesNo = rows.length > 1 && $(rows[1]).find('td').eq(2).text().trim().toUpperCase().includes('YES / NO');
     
     if (hasYesNoHeader || isDetailsColumnYesNo) {
@@ -129,7 +153,14 @@ export async function parseDocx(fileBuffer: Buffer, fileName: string): Promise<C
             title: desc,
             type: 'yes_no',
             required: true,
-            riskLevel: desc.toUpperCase().includes('FIRE') || desc.toUpperCase().includes('EARTHING') ? 'HIGH' : 'MEDIUM',
+            riskLevel: (() => {
+              const u = desc.toUpperCase();
+              const highTerms = ['FIRE', 'EARTHING', 'CRITICAL', 'HAZARD', 'EXPOSED', 'DANGER', 'HIGH VOLTAGE', 'BREACH', 'SECURITY', 'MALFUNCTION', 'SHUTDOWN', 'LIQUIDATION', 'FRAUD', 'COMPLIANCE VIOLATION', 'SAFETY CABLE', 'GAS LEAK'];
+              const medTerms = ['MAINTENANCE', 'WARNING', 'INSULATION', 'VENTILATION', 'SIGNAGE', 'ACCESS CONTROL', 'EXPIRED', 'PROCEDURE', 'INCOMPLETE', 'DOCUMENTATION', 'CALIBRATION'];
+              if (highTerms.some(t => u.includes(t))) return 'HIGH';
+              if (medTerms.some(t => u.includes(t))) return 'MEDIUM';
+              return 'LOW';
+            })(),
             recoMapping: reco || 'Rectification to be completed immediately.'
           });
         }
@@ -147,8 +178,17 @@ export async function parseDocx(fileBuffer: Buffer, fileName: string): Promise<C
     }
     
     // Case 3: Observations Table (e.g. Table 5)
-    // 3 columns: S.No, Description, Observation
-    if (columns.length === 3 && uppercaseCols.some(c => c.includes('OBSERVATION') || c.includes('REMARK'))) {
+    // 3 columns: S.No, Description, Observation/Findings
+    const hasObservationHeader = uppercaseCols.some(c => 
+      c.includes('OBSERVATION') || 
+      c.includes('REMARK') || 
+      c.includes('FINDING') || 
+      c.includes('COMMENT') || 
+      c.includes('NON-COMPLIANCE') || 
+      c.includes('DEFECT') || 
+      c.includes('RECOMMENDATION')
+    );
+    if (columns.length === 3 && hasObservationHeader) {
       const fields: TemplateFieldSchema[] = [];
       
       rows.each((rowIndex, rowEl) => {
@@ -240,24 +280,24 @@ export async function parseDocx(fileBuffer: Buffer, fileName: string): Promise<C
   if (sections.length === 0) {
     sections.push({
       id: generateId('sec'),
-      title: 'General Audit Checklist',
+      title: 'General Compliance Checklist',
       type: 'checklist',
       orderIndex: 0,
       fields: [
         {
           id: generateId('field'),
-          title: 'Is the electrical wiring safe and insulated?',
+          title: `Verify compliance requirements for ${docTitle}`,
           type: 'yes_no',
           required: true,
-          riskLevel: 'HIGH',
-          recoMapping: 'Replace raw exposed wires with conduits.'
+          riskLevel: 'MEDIUM',
+          recoMapping: 'Review compliance guidelines and rectify gaps.'
         }
       ]
     });
   }
   
   return {
-    title: docTitle || 'Electrical Energy Audit Checklist',
+    title: docTitle || 'General Compliance Audit Checklist',
     description: `Generated automatically from ${fileName}`,
     version: 1,
     sections

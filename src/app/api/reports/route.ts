@@ -178,7 +178,7 @@ const REPORT_TEMPLATE = `
   <!-- Cover Page -->
   <div class="cover-page">
     <div class="cover-title">{{schema.title}}</div>
-    <div class="cover-subtitle">COMPLIANCE & ELECTRICAL ENERGY AUDIT REPORT</div>
+    <div class="cover-subtitle">{{reportType}}</div>
     
     <div style="margin: 40px 0;">
       <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #64748b;">Compliance Score</div>
@@ -362,6 +362,25 @@ export async function POST(req: NextRequest) {
       ? new Date(session.completedAt).toLocaleDateString('en-US', { dateStyle: 'long' })
       : new Date().toLocaleDateString('en-US', { dateStyle: 'long' });
 
+    // Determine report type based on keywords in title
+    const titleUpper = (schema.title || '').toUpperCase();
+    let reportType = "COMPLIANCE AUDIT REPORT";
+    if (titleUpper.includes("ELECTRICAL") || titleUpper.includes("ENERGY")) {
+      reportType = "COMPLIANCE & ELECTRICAL ENERGY AUDIT REPORT";
+    } else if (titleUpper.includes("FIRE")) {
+      reportType = "FIRE SAFETY & LIFE SAFETY AUDIT REPORT";
+    } else if (titleUpper.includes("SAFETY") || titleUpper.includes("HSE") || titleUpper.includes("HEALTH")) {
+      reportType = "HEALTH, SAFETY & ENVIRONMENT AUDIT REPORT";
+    } else if (titleUpper.includes("SECURITY")) {
+      reportType = "PHYSICAL SECURITY & COMPLIANCE AUDIT REPORT";
+    } else if (titleUpper.includes("STRUCTURAL")) {
+      reportType = "STRUCTURAL STABILITY & COMPLIANCE REPORT";
+    } else if (titleUpper.includes("FINANCIAL") || titleUpper.includes("AUDIT")) {
+      reportType = "FINANCIAL AUDIT & COMPLIANCE REPORT";
+    } else {
+      reportType = `${schema.title ? schema.title.toUpperCase() : 'COMPLIANCE'} REPORT`;
+    }
+
     // Compile template
     const template = Handlebars.compile(REPORT_TEMPLATE);
     const htmlOutput = template({
@@ -371,7 +390,8 @@ export async function POST(req: NextRequest) {
       failures,
       hasFailures: failures.length > 0,
       score,
-      dateString
+      dateString,
+      reportType
     });
 
     // Return HTML output back to client. The client will load it in a print-ready context.
