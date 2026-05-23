@@ -16,6 +16,7 @@ import { ChecklistSchema, AuditSessionData } from '@/types/schema';
 interface KPIDashboardProps {
   sessions: AuditSessionData[];
   templates: ChecklistSchema[];
+  onResumeSession?: (session: AuditSessionData) => void;
 }
 
 interface MetricCardProps {
@@ -74,7 +75,7 @@ function ComplianceGauge({ score }: { score: number }) {
   );
 }
 
-export function KPIDashboard({ sessions, templates }: KPIDashboardProps) {
+export function KPIDashboard({ sessions, templates, onResumeSession }: KPIDashboardProps) {
   // Calculate aggregate metrics
   const totalAudits = sessions.length;
   const completedAudits = sessions.filter(s => s.status === 'Completed').length;
@@ -265,6 +266,14 @@ export function KPIDashboard({ sessions, templates }: KPIDashboardProps) {
                   <span className="text-[10px] text-muted-foreground font-mono">
                     {new Date(session.startedAt).toLocaleDateString()}
                   </span>
+                  {session.status === 'In_Progress' && onResumeSession && (
+                    <button
+                      onClick={() => onResumeSession(session)}
+                      className="text-[10px] font-bold px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-sm"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

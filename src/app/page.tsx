@@ -322,6 +322,22 @@ export default function HomePage() {
     }
   };
 
+  // --- Handler: Resume Audit ---
+  const handleResumeAudit = (session: AuditSessionData) => {
+    const template = templates.find(t => t.id === session.checklistId);
+    if (!template) {
+      alert("The template for this session could not be found.");
+      return;
+    }
+    setActiveSchema(template);
+    setActiveSession(session);
+    if (template.version === 2) {
+      setView('dynamic_runner');
+    } else {
+      setView('runner');
+    }
+  };
+
   // --- Handler: Save Audit Session ---
   const handleSaveSession = async (session: AuditSessionData) => {
     await IndexedDBManager.saveSession(session);
@@ -521,7 +537,7 @@ export default function HomePage() {
                 <PlusCircle className="w-4 h-4 mr-2" /> New Template
               </Button>
             </div>
-            <KPIDashboard sessions={sessions} templates={templates} />
+            <KPIDashboard sessions={sessions} templates={templates} onResumeSession={handleResumeAudit} />
           </div>
         )}
 
@@ -622,8 +638,28 @@ export default function HomePage() {
                   ))}
                 </div>
 
+                {/* In-Progress Sessions list */}
+                {sessions.filter(s => s.status === 'In_Progress').length > 0 && (
+                  <div className="mt-8 space-y-4">
+                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">In-Progress Audit Sessions</h3>
+                    <div className="space-y-3">
+                      {sessions.filter(s => s.status === 'In_Progress').map(session => (
+                        <div key={session.id} className="glass-panel p-4 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs font-bold text-foreground block">{session.siteName}</span>
+                            <span className="text-[10px] text-muted-foreground">{session.clientName} • Started {new Date(session.startedAt).toLocaleDateString()}</span>
+                          </div>
+                          <Button size="sm" onClick={() => handleResumeAudit(session)} className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                            <Pencil className="w-3.5 h-3.5 mr-1" /> Edit / Resume
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Sessions list with report generation */}
-                {sessions.length > 0 && (
+                {sessions.filter(s => s.status === 'Completed').length > 0 && (
                   <div className="mt-8 space-y-4">
                     <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Completed Audit Sessions</h3>
                     <div className="space-y-3">
