@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import Handlebars from 'handlebars';
 import { DynamicChecklistSchema, DynamicAuditSession, DynamicComponentResponse } from '@/types/dynamicSchema';
 
@@ -606,10 +606,22 @@ export async function generatePdf(schema: DynamicChecklistSchema, session: Dynam
   });
 
   // 4. Launch Puppeteer
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  let browser;
+  if (process.env.VERCEL) {
+    const chromium = (await import('@sparticuz/chromium')).default;
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless === 'shell' ? true : chromium.headless,
+    });
+  } else {
+    const localPuppeteer = (await import('puppeteer')).default;
+    browser = await localPuppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+  }
 
   try {
     const page = await browser.newPage();
