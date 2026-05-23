@@ -93,7 +93,7 @@ export function DynamicRenderer({
     let naCount = 0;
     const riskLevels = { high: 0, med: 0, low: 0 };
 
-    schema.components.forEach(comp => {
+    (schema?.components || []).forEach(comp => {
       if (comp.type === 'checklist') {
         const resp = getResponse(comp.id);
         comp.items.forEach(item => {
@@ -167,7 +167,7 @@ export function DynamicRenderer({
 
     // Schema required components validation
     let validationFailed = false;
-    schema.components.forEach(comp => {
+    (schema?.components || []).forEach(comp => {
       if (comp.required) {
         const resp = getResponse(comp.id);
         if (comp.type === 'signature' && !resp.signatureBase64) {
@@ -266,7 +266,7 @@ export function DynamicRenderer({
           {/* TAB 1: FORM EDITOR */}
           {activeTab === 'form' && (
             <div className="space-y-6">
-              {schema.components.map((comp) => {
+              {(schema?.components || []).map((comp) => {
                 const resp = getResponse(comp.id);
 
                 switch (comp.type) {
@@ -540,7 +540,7 @@ export function DynamicRenderer({
                     <h4 className="text-sm font-bold uppercase tracking-wider">Required Compliance Remediation Action Items</h4>
                   </div>
                   <div className="divide-y divide-red-500/10">
-                    {schema.components.map(comp => {
+                    {(schema?.components || []).map(comp => {
                       if (comp.type !== 'checklist') return null;
                       const resp = getResponse(comp.id);
                       return comp.items.map(item => {

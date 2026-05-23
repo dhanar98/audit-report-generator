@@ -11,18 +11,19 @@ interface DynamicRunnerViewProps {
 }
 
 export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
+  const effectiveSchema = (schema && schema.components) ? schema : COMPREHENSIVE_DYNAMIC_SCHEMA;
   const [session, setSession] = useState<DynamicAuditSession | null>(null);
 
   // Initialize session response data structure from IndexedDB
   useEffect(() => {
     const initSession = async () => {
       const stored = await IndexedDBManager.getSession('active_dynamic_session');
-      if (stored && (stored as any).schemaId === schema.id) {
+      if (stored && (stored as any).schemaId === effectiveSchema.id) {
         setSession(stored as any);
       } else {
         const newSession: DynamicAuditSession = {
           id: 'active_dynamic_session',
-          schemaId: schema.id,
+          schemaId: effectiveSchema.id,
           clientName: '',
           siteName: '',
           siteAddress: '',
@@ -35,7 +36,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
       }
     };
     initSession();
-  }, [schema]);
+  }, [effectiveSchema.id]);
 
   const handleSave = async (updatedSession: DynamicAuditSession) => {
     try {
@@ -77,7 +78,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
       const res = await fetch('/api/reports/dynamic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schema, session: exportSession, format: 'pdf' })
+        body: JSON.stringify({ schema: effectiveSchema, session: exportSession, format: 'pdf' })
       });
 
       if (!res.ok) throw new Error('Failed to generate PDF');
@@ -86,7 +87,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Audit_Report_${schema.title.replace(/\s+/g, '_')}.pdf`;
+      a.download = `Audit_Report_${effectiveSchema.title.replace(/\s+/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -100,7 +101,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
       const res = await fetch('/api/reports/dynamic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schema, session: exportSession, format: 'docx' })
+        body: JSON.stringify({ schema: effectiveSchema, session: exportSession, format: 'docx' })
       });
 
       if (!res.ok) throw new Error('Failed to generate Word document');
@@ -109,7 +110,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Audit_Report_${schema.title.replace(/\s+/g, '_')}.docx`;
+      a.download = `Audit_Report_${effectiveSchema.title.replace(/\s+/g, '_')}.docx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -130,7 +131,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
   return (
     <div className="min-h-screen bg-background">
       <DynamicRenderer 
-        schema={schema}
+        schema={effectiveSchema}
         initialSession={session}
         onSave={handleSave}
         onComplete={handleComplete}

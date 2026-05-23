@@ -599,7 +599,7 @@ export default function HomePage() {
         )}
 
         {/* DYNAMIC RUNNER VIEW */}
-        {view === 'dynamic_runner' && activeSchema && (
+        {view === 'dynamic_runner' && (
           <DynamicRunnerView schema={activeSchema as any} onBack={() => setView('dashboard')} />
         )}
 
