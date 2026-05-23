@@ -123,6 +123,59 @@ export default function HomePage() {
     })();
   }, [mounted]);
 
+  // --- Trigger Database Sync ---
+  const triggerSync = async () => {
+    if (typeof window === 'undefined' || !navigator.onLine) return;
+    try {
+      const queue = await IndexedDBManager.getSyncQueue();
+      if (queue.length === 0) return;
+
+      console.log(`Syncing ${queue.length} items to database...`);
+      const payload = queue.map(item => ({
+        id: item.id,
+        type: item.type,
+        data: item.data
+      }));
+
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Network response was not ok');
+      const result = await res.json();
+      
+      if (result.results && Array.isArray(result.results)) {
+        let successCount = 0;
+        for (const itemResult of result.results) {
+          if (itemResult.status === 'success') {
+            await IndexedDBManager.removeFromSyncQueue(Number(itemResult.id));
+            successCount++;
+          }
+        }
+        if (successCount > 0) {
+          console.log(`Successfully synced ${successCount} items to database!`);
+        }
+      }
+    } catch (err: any) {
+      console.error('Offline database sync failed:', err.message);
+    }
+  };
+
+  // Sync loop trigger when online
+  useEffect(() => {
+    if (!mounted || !isOnline) return;
+
+    triggerSync();
+
+    const interval = setInterval(() => {
+      triggerSync();
+    }, 15000); // Sync every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [mounted, isOnline]);
+
   // --- Handler: Upload & Parse DOCX ---
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -148,6 +201,13 @@ export default function HomePage() {
       // Save to IndexedDB
       await IndexedDBManager.saveTemplate(schemaWithId);
       setTemplates(prev => [...prev, schemaWithId]);
+
+      // Queue offline sync
+      await IndexedDBManager.addToSyncQueue({
+        type: 'publish_template',
+        data: schemaWithId
+      });
+      triggerSync();
 
       // Open in builder
       setActiveSchema(schemaWithId);
@@ -202,6 +262,14 @@ export default function HomePage() {
       }
       return [...prev, schemaWithId];
     });
+
+    // Queue offline sync
+    await IndexedDBManager.addToSyncQueue({
+      type: 'publish_template',
+      data: schemaWithId
+    });
+    triggerSync();
+
     alert('Template draft saved to local storage.');
   };
 
@@ -218,6 +286,14 @@ export default function HomePage() {
       }
       return [...prev, schemaWithId];
     });
+
+    // Queue offline sync
+    await IndexedDBManager.addToSyncQueue({
+      type: 'publish_template',
+      data: schemaWithId
+    });
+    triggerSync();
+
     setView('dashboard');
     alert('Template published successfully!');
   };
@@ -258,6 +334,14 @@ export default function HomePage() {
       }
       return [...prev, session];
     });
+
+    // Queue offline sync
+    await IndexedDBManager.addToSyncQueue({
+      type: 'save_session',
+      data: session
+    });
+    triggerSync();
+
     alert('Audit draft saved offline.');
   };
 
@@ -273,6 +357,14 @@ export default function HomePage() {
       }
       return [...prev, session];
     });
+
+    // Queue offline sync
+    await IndexedDBManager.addToSyncQueue({
+      type: 'save_session',
+      data: session
+    });
+    triggerSync();
+
     alert('Audit completed and saved!');
     setView('dashboard');
   };
