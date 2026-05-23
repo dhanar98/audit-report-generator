@@ -78,6 +78,7 @@ model Checklist {
   status      String        @default("Draft") // Draft, Published
   sections    TemplateSection[]
   sessions    AuditSession[]
+  componentsJson String?     // For storing version 2 dynamic components as JSON
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -132,6 +133,8 @@ model AuditSession {
   responses      Response[]
   photos         Photo[]
   reports        Report[]
+  responsesJson  String?      // For storing version 2 dynamic responses as JSON
+  createdAt      DateTime     @default(now())
 }
 
 model Response {
