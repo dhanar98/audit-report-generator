@@ -59,7 +59,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
     initSession();
   }, [effectiveSchema.id]);
 
-  const handleSave = async (updatedSession: DynamicAuditSession) => {
+  const handleSave = async (updatedSession: DynamicAuditSession, silent?: boolean) => {
     try {
       setSession(updatedSession);
       await IndexedDBManager.saveSession(updatedSession as any);
@@ -69,9 +69,13 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
         data: updatedSession
       });
       syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
-      alert('Audit session draft successfully saved offline!');
+      if (!silent) {
+        alert('Audit session draft successfully saved offline!');
+      }
     } catch (e: any) {
-      alert(`Save failed: ${e.message}`);
+      if (!silent) {
+        alert(`Save failed: ${e.message}`);
+      }
     }
   };
 

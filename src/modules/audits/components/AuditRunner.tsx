@@ -28,7 +28,7 @@ import {
 interface AuditRunnerProps {
   schema: ChecklistSchema;
   initialSession?: AuditSessionData | null;
-  onSave: (session: AuditSessionData) => void;
+  onSave: (session: AuditSessionData, silent?: boolean) => void;
   onComplete: (session: AuditSessionData) => void;
   onBack: () => void;
 }
@@ -62,6 +62,15 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
       setSession(initialSession);
     }
   }, [initialSession]);
+
+  // Debounced auto-save on change
+  useEffect(() => {
+    if (!session) return;
+    const timer = setTimeout(() => {
+      onSave(session, true);
+    }, 1000); // 1 second delay after changes stop
+    return () => clearTimeout(timer);
+  }, [session, onSave]);
 
   // Helpers to get/set responses
   const getResponse = (fieldId: string): AuditResponse | undefined => {

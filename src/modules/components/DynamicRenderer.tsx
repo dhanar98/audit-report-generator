@@ -23,7 +23,7 @@ import { KpiSummaryCard } from './KpiSummaryCard';
 interface DynamicRendererProps {
   schema: DynamicChecklistSchema;
   initialSession?: DynamicAuditSession | null;
-  onSave: (session: DynamicAuditSession) => void;
+  onSave: (session: DynamicAuditSession, silent?: boolean) => void;
   onComplete: (session: DynamicAuditSession) => void;
   onBack: () => void;
   onExportPdf?: (session: DynamicAuditSession) => void;
@@ -64,6 +64,15 @@ export function DynamicRenderer({
       setSession(initialSession);
     }
   }, [initialSession]);
+
+  // Debounced auto-save on change
+  useEffect(() => {
+    if (!session) return;
+    const timer = setTimeout(() => {
+      onSave(session, true);
+    }, 1000); // 1 second delay after changes stop
+    return () => clearTimeout(timer);
+  }, [session, onSave]);
 
   // Helpers to manage component responses
   const getResponse = (componentId: string): DynamicComponentResponse => {

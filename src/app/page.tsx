@@ -531,7 +531,7 @@ export default function HomePage() {
   };
 
   // --- Handler: Save Audit Session ---
-  const handleSaveSession = async (session: AuditSessionData) => {
+  const handleSaveSession = async (session: AuditSessionData, silent = false) => {
     await IndexedDBManager.saveSession(session);
     setSessions(prev => {
       const idx = prev.findIndex(s => s.id === session.id);
@@ -551,7 +551,9 @@ export default function HomePage() {
     triggerSync();
     syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
 
-    alert('Audit draft saved offline.');
+    if (!silent) {
+      alert('Audit draft saved offline.');
+    }
   };
 
   // --- Handler: Complete Audit ---
