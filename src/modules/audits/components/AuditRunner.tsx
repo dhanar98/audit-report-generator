@@ -228,24 +228,38 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full overflow-hidden">
       {/* Top dashboard info header */}
-      <div className="flex items-center justify-between p-4 bg-muted/20 border-b border-border/80 z-10 backdrop-blur-sm">
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center space-x-2">
-            <h3 className="text-md font-bold text-primary">{schema.title}</h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">
-              Draft Execution
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 bg-card/65 border-b border-border/80 z-10 backdrop-blur-md gap-3">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+          <div className="flex flex-col space-y-0.5 text-left min-w-0">
+            <div className="flex items-center space-x-2 min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold text-primary truncate max-w-[200px] sm:max-w-xs">{schema.title}</h3>
+              <span className="hidden xs:inline-block text-[9px] font-mono px-1.5 py-0.5 bg-muted text-muted-foreground rounded border border-border shrink-0">
+                Draft
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground truncate">
+              {session.auditorName} • {session.siteName}
+            </p>
+          </div>
+
+          {/* Compliance Gauge on mobile next to title */}
+          <div className="flex flex-col items-end sm:hidden shrink-0">
+            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Score</span>
+            <span className={`text-sm font-black ${
+              currentScore >= 85 ? 'text-green-400' :
+              currentScore >= 60 ? 'text-yellow-400' :
+              'text-red-400'
+            }`}>
+              {currentScore}%
             </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            Auditor: {session.auditorName} | Site: {session.siteName}
-          </span>
         </div>
         
-        {/* Compliance Gauge in Header */}
-        <div className="flex items-center space-x-5">
+        {/* Compliance Gauge and actions in Header - Desktop only */}
+        <div className="hidden sm:flex items-center space-x-4 shrink-0">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Dynamic Safety Score</span>
-            <span className={`text-xl font-black ${
+            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Safety Score</span>
+            <span className={`text-base font-black ${
               currentScore >= 85 ? 'text-green-400' :
               currentScore >= 60 ? 'text-yellow-400' :
               'text-red-400'
@@ -254,11 +268,11 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
             </span>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={saveDraft} className="border-primary/20 text-foreground">
-              <Save className="w-4 h-4 mr-1.5" /> Save Draft
+            <Button variant="outline" size="sm" onClick={saveDraft} className="h-8 text-xs border-primary/20 text-foreground">
+              <Save className="w-3.5 h-3.5 mr-1" /> Save Draft
             </Button>
-            <Button size="sm" onClick={completeAudit} className="bg-primary hover:bg-primary/95 text-primary-foreground">
-              <CheckCircle className="w-4 h-4 mr-1.5" /> Finalize Audit
+            <Button size="sm" onClick={completeAudit} className="h-8 text-xs bg-primary hover:bg-primary/95 text-primary-foreground">
+              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Finalize Audit
             </Button>
           </div>
         </div>
@@ -268,7 +282,7 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
       <div className="flex flex-1 overflow-hidden">
         
         {/* LEFT BAR: Stepper Progress indicator */}
-        <div className="w-64 bg-muted/10 border-r border-border/80 p-4 overflow-y-auto space-y-3">
+        <div className="hidden md:block w-64 bg-muted/10 border-r border-border/80 p-4 overflow-y-auto space-y-3 shrink-0">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">Audit Sections</span>
           {schema.sections.map((sec, index) => (
             <div
@@ -290,7 +304,24 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
         </div>
 
         {/* CENTER CANVA: Active Section execution inputs */}
-        <div className="flex-1 bg-background overflow-y-auto p-6 flex flex-col space-y-6">
+        <div className="flex-1 bg-background overflow-y-auto p-4 sm:p-6 pb-24 flex flex-col space-y-6">
+          {/* Mobile active section selector */}
+          <div className="md:hidden flex items-center justify-between gap-2 mb-2 text-left shrink-0">
+            <Button variant="ghost" size="xs" onClick={onBack} className="h-8 w-8 p-0 rounded-full flex-shrink-0">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <select
+              value={activeSecIndex}
+              onChange={(e) => setActiveSecIndex(Number(e.target.value))}
+              className="flex-1 h-8 text-xs rounded-lg border border-border/80 bg-card px-2 text-foreground focus:border-primary focus:outline-none"
+            >
+              {schema.sections.map((sec, index) => (
+                <option key={sec.id} value={index}>
+                  {sec.title}
+                </option>
+              ))}
+            </select>
+          </div>
           {activeSection ? (
             <div className="max-w-3xl mx-auto w-full space-y-6">
               <div className="border-b border-border/80 pb-3">
@@ -495,6 +526,16 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
           )}
         </div>
 
+      </div>
+
+      {/* Sticky Mobile/Bottom Save Toolbar */}
+      <div className="fixed bottom-0 inset-x-0 h-16 bg-card border-t border-border z-20 flex sm:hidden items-center justify-between px-4 shadow-lg backdrop-blur-md">
+        <Button variant="outline" size="sm" onClick={saveDraft} className="h-9 text-xs w-[47%]">
+          <Save className="w-3.5 h-3.5 mr-1" /> Save Draft
+        </Button>
+        <Button size="sm" onClick={completeAudit} className="h-9 text-xs bg-primary hover:bg-primary/95 text-primary-foreground w-[47%]">
+          <CheckCircle className="w-3.5 h-3.5 mr-1" /> Submit Audit
+        </Button>
       </div>
     </div>
   );

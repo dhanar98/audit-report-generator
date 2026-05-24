@@ -57,15 +57,15 @@ export function DynamicDropdowns({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full">
       {/* Client Selection */}
-      <div className="space-y-1.5 text-left">
-        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Client Organization</label>
+      <div className="space-y-2 text-left">
+        <label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Client Organization</label>
         <select
           value={clientId}
           disabled={readOnly}
           onChange={handleClientChange}
-          className="w-full h-9 text-xs rounded-lg border border-border/80 bg-card px-3 text-foreground focus:border-primary focus:outline-none"
+          className="w-full h-11 text-xs rounded-lg border border-border/80 bg-card px-3 py-2.5 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
         >
           <option value="">Select Client</option>
           {LOOKUP_CLIENTS.map((cli) => (
@@ -77,13 +77,13 @@ export function DynamicDropdowns({
       </div>
 
       {/* Site Selection */}
-      <div className="space-y-1.5 text-left">
-        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Site / Branch Location</label>
+      <div className="space-y-2 text-left">
+        <label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Site / Branch Location</label>
         <select
           value={siteId}
           disabled={readOnly || !clientId}
           onChange={handleSiteChange}
-          className="w-full h-9 text-xs rounded-lg border border-border/80 bg-card px-3 text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          className="w-full h-11 text-xs rounded-lg border border-border/80 bg-card px-3 py-2.5 text-foreground focus:border-primary focus:outline-none disabled:opacity-50 focus:ring-1 focus:ring-primary/20"
         >
           <option value="">Select Site</option>
           {selectedClient?.sites.map((site) => (
@@ -95,13 +95,13 @@ export function DynamicDropdowns({
       </div>
 
       {/* Auditor Selection */}
-      <div className="space-y-1.5 text-left">
-        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Lead Auditor</label>
+      <div className="space-y-2 text-left">
+        <label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Lead Auditor</label>
         <select
           value={auditorId}
           disabled={readOnly || !siteId}
           onChange={handleAuditorChange}
-          className="w-full h-9 text-xs rounded-lg border border-border/80 bg-card px-3 text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          className="w-full h-11 text-xs rounded-lg border border-border/80 bg-card px-3 py-2.5 text-foreground focus:border-primary focus:outline-none disabled:opacity-50 focus:ring-1 focus:ring-primary/20"
         >
           <option value="">Select Lead Auditor</option>
           {selectedSite?.auditors.map((aud) => (

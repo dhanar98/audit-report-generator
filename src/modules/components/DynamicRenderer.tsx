@@ -196,46 +196,62 @@ export function DynamicRenderer({
     <div className="flex flex-col h-[calc(100vh-140px)] w-full overflow-hidden relative bg-background">
       
       {/* Dynamic Form Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-card/65 border-b border-border/80 z-10 backdrop-blur-md gap-4">
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="xs" onClick={onBack} className="h-7 w-7 p-0 rounded-full">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between p-3 sm:p-4 bg-card/65 border-b border-border/80 z-10 backdrop-blur-md gap-3">
+        <div className="flex items-center justify-between w-full md:w-auto gap-2">
+          <div className="flex items-center space-x-2 min-w-0">
+            <Button variant="ghost" size="xs" onClick={onBack} className="h-7 w-7 p-0 rounded-full flex-shrink-0">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <h3 className="text-sm font-bold text-primary truncate max-w-[200px] sm:max-w-md">{schema.title}</h3>
+            <div className="min-w-0 text-left">
+              <h3 className="text-xs sm:text-sm font-bold text-primary truncate max-w-[180px] sm:max-w-xs md:max-w-md">{schema.title}</h3>
+              <p className="text-[9px] text-muted-foreground pl-1">
+                Status: <span className="font-semibold text-amber-500">{session.status}</span>
+              </p>
+            </div>
           </div>
-          <span className="text-[10px] text-muted-foreground pl-9">
-            Status: <span className="font-semibold text-amber-500">{session.status}</span>
-          </span>
+
+          {/* Export buttons on mobile next to title */}
+          <div className="flex items-center space-x-1.5 md:hidden">
+            {onExportPdf && (
+              <Button size="xs" variant="outline" onClick={() => onExportPdf(session)} className="h-7 px-2 border-red-500/30 text-red-500 hover:bg-red-500/10 rounded-lg text-[10px] font-bold">
+                PDF
+              </Button>
+            )}
+            {onExportDocx && (
+              <Button size="xs" variant="outline" onClick={() => onExportDocx(session)} className="h-7 px-2 border-blue-500/30 text-blue-500 hover:bg-blue-500/10 rounded-lg text-[10px] font-bold">
+                Word
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* View Tabs Selector */}
-        <div className="flex bg-muted/40 border border-border/60 p-0.5 rounded-lg text-xs">
+        <div className="flex bg-muted/40 border border-border/60 p-0.5 rounded-lg text-xs w-full md:w-auto justify-between sm:justify-start">
           <button 
             type="button" 
             onClick={() => setActiveTab('form')} 
-            className={`px-3 py-1 rounded-md transition-all font-semibold ${activeTab === 'form' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+            className={`flex-1 sm:flex-initial text-center px-2.5 py-1 sm:px-4 rounded-md transition-all font-semibold ${activeTab === 'form' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
           >
             Audit Form
           </button>
           <button 
             type="button" 
             onClick={() => setActiveTab('kpis')} 
-            className={`px-3 py-1 rounded-md transition-all font-semibold ${activeTab === 'kpis' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+            className={`flex-1 sm:flex-initial text-center px-2.5 py-1 sm:px-4 rounded-md transition-all font-semibold ${activeTab === 'kpis' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
           >
             KPI Snapshot
           </button>
           <button 
             type="button" 
             onClick={() => setActiveTab('photos')} 
-            className={`px-3 py-1 rounded-md transition-all font-semibold ${activeTab === 'photos' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+            className={`flex-1 sm:flex-initial text-center px-2.5 py-1 sm:px-4 rounded-md transition-all font-semibold ${activeTab === 'photos' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
           >
             Evidence ({sessionPhotos.length})
           </button>
         </div>
         
-        {/* Toolbar Buttons */}
-        <div className="flex items-center space-x-2 shrink-0">
+        {/* Toolbar Buttons - Desktop only */}
+        <div className="hidden md:flex items-center space-x-2 shrink-0">
           {!readOnly && (
             <>
               <Button variant="outline" size="sm" onClick={() => onSave(session)} className="h-8 text-xs">

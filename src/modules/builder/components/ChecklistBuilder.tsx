@@ -60,8 +60,8 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
       ? (initialSchema as DynamicChecklistSchema).components?.[0]?.id || ''
       : (initialSchema as ChecklistSchema).sections?.[0]?.id || ''
   );
-  
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+  const [builderTab, setBuilderTab] = useState<'components' | 'canvas' | 'config'>('canvas');
 
   // -------------------------------------------------------------
   // V2 Dynamic Component Engine Operations
@@ -344,8 +344,8 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
     <div className="flex flex-col h-[calc(100vh-140px)] w-full overflow-hidden text-foreground bg-background">
       
       {/* Top action bar */}
-      <div className="flex items-center justify-between p-4 bg-muted/20 border-b border-border/80 sticky top-0 z-10 backdrop-blur-sm">
-        <div className="flex flex-col text-left">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 bg-muted/20 border-b border-border/80 sticky top-0 z-10 backdrop-blur-sm gap-3">
+        <div className="flex flex-col text-left min-w-0">
           <input
             value={isV2 ? schemaV2.title : schemaV1.title}
             onChange={(e) => {
@@ -355,7 +355,7 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
                 updateSchemaV1(prev => ({ ...prev, title: e.target.value }));
               }
             }}
-            className="text-lg font-bold bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none w-[350px] transition-all text-primary"
+            className="text-sm sm:text-lg font-bold bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none w-full sm:w-[350px] transition-all text-primary"
           />
           <input
             value={isV2 ? (schemaV2.description || '') : (schemaV1.description || '')}
@@ -367,27 +367,52 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
               }
             }}
             placeholder="Add description..."
-            className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none w-[450px]"
+            className="text-[10px] sm:text-xs text-muted-foreground bg-transparent border-none focus:outline-none w-full sm:w-[450px]"
           />
         </div>
-        <div className="flex items-center space-x-3">
-          <span className="text-[10px] bg-amber-500/20 text-amber-500 font-bold px-2 py-0.5 rounded-full uppercase">
-            {isV2 ? 'V2 Dynamic Engine' : 'V1 Standard'}
+        <div className="flex items-center space-x-2 sm:space-x-3 justify-end shrink-0">
+          <span className="text-[9px] sm:text-[10px] bg-amber-500/20 text-amber-500 font-bold px-2 py-0.5 rounded-full uppercase shrink-0">
+            {isV2 ? 'V2 Engine' : 'V1 Standard'}
           </span>
-          <Button variant="outline" size="sm" onClick={() => onSaveDraft(isV2 ? schemaV2 : schemaV1)} className="border-primary/30 text-foreground hover:bg-primary/10">
-            <Save className="w-4 h-4 mr-2" /> Save Draft
+          <Button variant="outline" size="sm" onClick={() => onSaveDraft(isV2 ? schemaV2 : schemaV1)} className="h-8 text-xs border-primary/30 text-foreground hover:bg-primary/10 px-2 sm:px-3">
+            <Save className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Save Draft
           </Button>
-          <Button size="sm" onClick={() => onPublish(isV2 ? schemaV2 : schemaV1)} className="bg-primary hover:bg-primary/95">
-            <Check className="w-4 h-4 mr-2" /> Publish Template
+          <Button size="sm" onClick={() => onPublish(isV2 ? schemaV2 : schemaV1)} className="h-8 text-xs bg-primary hover:bg-primary/95 px-2 sm:px-3">
+            <Check className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Publish
           </Button>
         </div>
+      </div>
+
+      {/* Mobile panel selector tabs */}
+      <div className="flex lg:hidden bg-muted/40 border-b border-border/60 p-1 text-xs justify-around shrink-0">
+        <button
+          type="button"
+          onClick={() => setBuilderTab('components')}
+          className={`flex-1 text-center py-2 rounded-md font-semibold transition-all ${builderTab === 'components' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+        >
+          Components
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderTab('canvas')}
+          className={`flex-1 text-center py-2 rounded-md font-semibold transition-all ${builderTab === 'canvas' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+        >
+          Canvas
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderTab('config')}
+          className={`flex-1 text-center py-2 rounded-md font-semibold transition-all ${builderTab === 'config' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+        >
+          Configurator
+        </button>
       </div>
 
       {/* Main 3-panel workspace layout */}
       <div className="flex flex-1 overflow-hidden">
         
         {/* LEFT SIDEBAR */}
-        <div className="w-72 bg-muted/30 border-r border-border/85 flex flex-col justify-between overflow-y-auto p-4 space-y-4">
+        <div className={`${builderTab === 'components' ? 'flex' : 'hidden lg:flex'} w-full lg:w-72 bg-muted/30 lg:border-r border-border/85 flex-col justify-between overflow-y-auto p-4 space-y-4 shrink-0`}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Template components</span>
@@ -548,7 +573,7 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
         </div>
 
         {/* CENTER CANVAS */}
-        <div className="flex-1 bg-background overflow-y-auto p-6 flex flex-col space-y-6">
+        <div className={`${builderTab === 'canvas' ? 'flex' : 'hidden lg:flex'} flex-1 bg-background overflow-y-auto p-4 sm:p-6 flex-col space-y-6`}>
           {isV2 ? (
             activeComponent ? (
               <div className="space-y-6 max-w-4xl mx-auto w-full">
@@ -1026,7 +1051,7 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
         </div>
 
         {/* RIGHT SETTINGS PANEL */}
-        <div className="w-80 bg-muted/30 border-l border-border/85 p-5 flex flex-col overflow-y-auto space-y-4">
+        <div className={`${builderTab === 'config' ? 'flex' : 'hidden lg:flex'} w-full lg:w-80 bg-muted/30 lg:border-l border-border/85 p-5 flex-col overflow-y-auto space-y-4 shrink-0`}>
           <div className="flex items-center space-x-2 border-b border-border/80 pb-3 mb-1">
             <Settings className="w-4 h-4 text-primary" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Block Configurator</h4>
