@@ -24,9 +24,166 @@ import { AuditRunner } from '@/modules/audits/components/AuditRunner';
 import { KPIDashboard } from '@/modules/dashboard/components/KPIDashboard';
 import { IndexedDBManager } from '@/modules/offline/IndexedDBManager';
 import { ChecklistSchema, AuditSessionData } from '@/types/schema';
+import { DynamicChecklistSchema, DynamicAuditSession } from '@/types/dynamicSchema';
 import { DynamicRunnerView } from '@/modules/components/DynamicRunnerView';
 
 type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report' | 'dynamic_runner';
+
+const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('veriaudit-sync-channel') : null;
+
+function convertV1ToV2(v1Schema: ChecklistSchema, v1Session: AuditSessionData): { v2Schema: DynamicChecklistSchema; v2Session: DynamicAuditSession } {
+  const v2Components: any[] = [];
+  
+  v1Schema.sections.forEach(sec => {
+    if (sec.type === 'header') {
+      v2Components.push({
+        id: sec.id,
+        type: 'header',
+        title: sec.title,
+        subtitle: sec.description || '',
+        description: '',
+        category: 'General',
+        required: false
+      });
+    } else if (sec.type === 'checklist') {
+      v2Components.push({
+        id: sec.id,
+        type: 'checklist',
+        title: sec.title,
+        items: (sec.fields || []).map(f => ({
+          id: f.id,
+          question: f.title,
+          riskLevel: f.riskLevel || 'LOW',
+          targetResolveDays: f.recoMapping ? 7 : 0,
+          required: f.required || false
+        })),
+        required: false
+      });
+    } else if (sec.type === 'table') {
+      (sec.tables || []).forEach(tbl => {
+        v2Components.push({
+          id: tbl.id,
+          type: 'table_grid',
+          title: tbl.title,
+          columns: (tbl.columns || []).map((col, idx) => ({
+            id: `col_${idx}`,
+            header: col,
+            type: 'text'
+          })),
+          defaultRowCount: tbl.rows ? tbl.rows.length : 1,
+          required: false
+        });
+      });
+    } else if (sec.type === 'observation') {
+      v2Components.push({
+        id: sec.id,
+        type: 'observation',
+        title: sec.title,
+        question: 'Detailed observation notes',
+        placeholder: 'Enter notes...',
+        allowImage: true,
+        required: false
+      });
+    } else if (sec.type === 'signature') {
+      v2Components.push({
+        id: sec.id,
+        type: 'signature',
+        title: sec.title,
+        placeholder: 'Auditor Signature',
+        required: false
+      });
+    }
+  });
+
+  const v2Schema: DynamicChecklistSchema = {
+    id: v1Schema.id || 'tpl_v1_converted',
+    title: v1Schema.title,
+    description: v1Schema.description || '',
+    version: 2,
+    components: v2Components
+  };
+
+  const v2Responses: any[] = [];
+
+  v1Session.responses.forEach(resp => {
+    for (const sec of v1Schema.sections) {
+      if (sec.type === 'checklist' && sec.fields?.some(f => f.id === resp.fieldId)) {
+        let compResp = v2Responses.find(r => r.componentId === sec.id);
+        if (!compResp) {
+          compResp = { componentId: sec.id, checklistAnswers: [] };
+          v2Responses.push(compResp);
+        }
+        compResp.checklistAnswers.push({
+          itemId: resp.fieldId,
+          value: resp.value,
+          remarks: resp.remarks || '',
+          recommendation: resp.recommendation || '',
+          photos: []
+        });
+      }
+    }
+  });
+
+  if (v1Session.photos && v1Session.photos.length > 0) {
+    const checklistComp = v2Components.find(c => c.type === 'checklist');
+    if (checklistComp) {
+      let compResp = v2Responses.find(r => r.componentId === checklistComp.id);
+      if (!compResp) {
+        compResp = { componentId: checklistComp.id, checklistAnswers: [] };
+        v2Responses.push(compResp);
+      }
+      
+      const noAnswers = compResp.checklistAnswers.filter((a: any) => a.value === 'NO');
+      if (noAnswers.length > 0) {
+        v1Session.photos.forEach((ph, idx) => {
+          const targetAnswer = noAnswers[idx % noAnswers.length];
+          if (targetAnswer) {
+            if (!targetAnswer.photos) targetAnswer.photos = [];
+            targetAnswer.photos.push(ph.base64Data);
+          }
+        });
+      }
+    }
+  }
+
+  v1Schema.sections.forEach(sec => {
+    if (sec.type === 'table') {
+      (sec.tables || []).forEach(tbl => {
+        const tableRows: any[] = [];
+        if (tbl.rows) {
+          tbl.rows.forEach((row, rowIdx) => {
+            (tbl.columns || []).forEach((col, colIdx) => {
+              tableRows.push({
+                rowId: `row_${rowIdx}`,
+                colId: `col_${colIdx}`,
+                value: row[colIdx] || ''
+              });
+            });
+          });
+        }
+        v2Responses.push({
+          componentId: tbl.id,
+          tableRows
+        });
+      });
+    }
+  });
+
+  const v2Session: DynamicAuditSession = {
+    id: v1Session.id,
+    schemaId: v1Schema.id || 'tpl_v1_converted',
+    clientName: v1Session.clientName || '',
+    siteName: v1Session.siteName || '',
+    siteAddress: '',
+    auditorName: v1Session.auditorName || '',
+    status: v1Session.status as any,
+    startedAt: v1Session.startedAt,
+    completedAt: v1Session.completedAt || undefined,
+    responses: v2Responses
+  };
+
+  return { v2Schema, v2Session };
+}
 
 // Default empty schema for new blank template v2 (dynamic component engine)
 const BLANK_SCHEMA_V2: any = {
@@ -123,6 +280,37 @@ export default function HomePage() {
     })();
   }, [mounted]);
 
+  // Listen to cross-tab updates via BroadcastChannel
+  useEffect(() => {
+    if (!mounted || !syncChannel) return;
+
+    const reloadData = async () => {
+      const storedTemplates = await IndexedDBManager.getTemplates();
+      const storedSessions = await IndexedDBManager.getSessions();
+      setTemplates(storedTemplates as (ChecklistSchema & { id: string })[]);
+      setSessions(storedSessions);
+      
+      // Update active session if it is being viewed/edited
+      if (activeSession) {
+        const freshSession = storedSessions.find(s => s.id === activeSession.id);
+        if (freshSession) {
+          setActiveSession(freshSession);
+        }
+      }
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'TEMPLATES_UPDATED' || event.data.type === 'SESSIONS_UPDATED') {
+        reloadData();
+      }
+    };
+
+    syncChannel.addEventListener('message', handleMessage);
+    return () => {
+      syncChannel.removeEventListener('message', handleMessage);
+    };
+  }, [mounted, activeSession]);
+
   // --- Trigger Database Sync ---
   const triggerSync = async () => {
     if (typeof window === 'undefined' || !navigator.onLine) return;
@@ -208,6 +396,7 @@ export default function HomePage() {
         data: schemaWithId
       });
       triggerSync();
+      syncChannel?.postMessage({ type: 'TEMPLATES_UPDATED' });
 
       // Open in builder
       setActiveSchema(schemaWithId);
@@ -269,6 +458,7 @@ export default function HomePage() {
       data: schemaWithId
     });
     triggerSync();
+    syncChannel?.postMessage({ type: 'TEMPLATES_UPDATED' });
 
     alert('Template draft saved to local storage.');
   };
@@ -293,6 +483,7 @@ export default function HomePage() {
       data: schemaWithId
     });
     triggerSync();
+    syncChannel?.postMessage({ type: 'TEMPLATES_UPDATED' });
 
     setView('dashboard');
     alert('Template published successfully!');
@@ -309,6 +500,7 @@ export default function HomePage() {
     if (!confirm('Delete this template permanently?')) return;
     await IndexedDBManager.deleteTemplate(id);
     setTemplates(prev => prev.filter(t => t.id !== id));
+    syncChannel?.postMessage({ type: 'TEMPLATES_UPDATED' });
   };
 
   // --- Handler: Start Audit ---
@@ -357,6 +549,7 @@ export default function HomePage() {
       data: session
     });
     triggerSync();
+    syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
 
     alert('Audit draft saved offline.');
   };
@@ -380,6 +573,7 @@ export default function HomePage() {
       data: session
     });
     triggerSync();
+    syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
 
     alert('Audit completed and saved!');
     setView('dashboard');
@@ -440,12 +634,64 @@ export default function HomePage() {
       const data = await res.json();
       if (data.html) {
         setReportHtml(data.html);
+        setActiveSession(session);
+        setActiveSchema(template);
         setView('report');
       } else {
         alert(data.error || 'Report generation failed.');
       }
     } catch (err: any) {
       alert(`Report error: ${err.message}`);
+    }
+  };
+
+  const handleExportV1Pdf = async () => {
+    if (!activeSchema || !activeSession) return;
+    try {
+      const { v2Schema, v2Session } = convertV1ToV2(activeSchema, activeSession);
+      const res = await fetch('/api/reports/dynamic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schema: v2Schema, session: v2Session, format: 'pdf' })
+      });
+
+      if (!res.ok) throw new Error('Failed to generate PDF');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Audit_Report_${activeSchema.title.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e: any) {
+      alert(`PDF export failed: ${e.message}`);
+    }
+  };
+
+  const handleExportV1Docx = async () => {
+    if (!activeSchema || !activeSession) return;
+    try {
+      const { v2Schema, v2Session } = convertV1ToV2(activeSchema, activeSession);
+      const res = await fetch('/api/reports/dynamic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schema: v2Schema, session: v2Session, format: 'docx' })
+      });
+
+      if (!res.ok) throw new Error('Failed to generate Word document');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Audit_Report_${activeSchema.title.replace(/\s+/g, '_')}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e: any) {
+      alert(`Word export failed: ${e.message}`);
     }
   };
 
@@ -711,8 +957,14 @@ export default function HomePage() {
                 <Button size="sm" variant="outline" onClick={() => setView('dashboard')} className="h-8 text-xs">
                   ← Back to Dashboard
                 </Button>
+                <Button size="sm" onClick={handleExportV1Pdf} className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700">
+                  <FileText className="w-3.5 h-3.5 mr-1" /> Download PDF
+                </Button>
+                <Button size="sm" onClick={handleExportV1Docx} className="h-8 text-xs bg-blue-600 hover:bg-blue-700">
+                  <FileText className="w-3.5 h-3.5 mr-1" /> Download Word
+                </Button>
                 <Button size="sm" onClick={handlePrintReport} className="h-8 text-xs bg-primary">
-                  <Printer className="w-3.5 h-3.5 mr-1" /> Print / Export PDF
+                  <Printer className="w-3.5 h-3.5 mr-1" /> Print Preview
                 </Button>
               </div>
             </div>

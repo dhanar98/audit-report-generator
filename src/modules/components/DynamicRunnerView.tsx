@@ -10,9 +10,30 @@ interface DynamicRunnerViewProps {
   onBack: () => void;
 }
 
+const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('veriaudit-sync-channel') : null;
+
 export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
   const effectiveSchema = (schema && schema.components) ? schema : COMPREHENSIVE_DYNAMIC_SCHEMA;
   const [session, setSession] = useState<DynamicAuditSession | null>(null);
+
+  // Cross-tab synchronization
+  useEffect(() => {
+    if (!syncChannel) return;
+
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data.type === 'SESSIONS_UPDATED') {
+        const stored = await IndexedDBManager.getSession('active_dynamic_session');
+        if (stored && (stored as any).schemaId === effectiveSchema.id) {
+          setSession(stored as any);
+        }
+      }
+    };
+
+    syncChannel.addEventListener('message', handleMessage);
+    return () => {
+      syncChannel.removeEventListener('message', handleMessage);
+    };
+  }, [effectiveSchema.id]);
 
   // Initialize session response data structure from IndexedDB
   useEffect(() => {
@@ -47,6 +68,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
         type: 'save_session',
         data: updatedSession
       });
+      syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
       alert('Audit session draft successfully saved offline!');
     } catch (e: any) {
       alert(`Save failed: ${e.message}`);
@@ -67,6 +89,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
         type: 'save_session',
         data: updated
       });
+      syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
       alert('Audit successfully completed!');
     } catch (e: any) {
       alert(`Completion failed: ${e.message}`);
