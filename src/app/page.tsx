@@ -26,6 +26,7 @@ import { IndexedDBManager } from '@/modules/offline/IndexedDBManager';
 import { ChecklistSchema, AuditSessionData } from '@/types/schema';
 import { DynamicChecklistSchema, DynamicAuditSession } from '@/types/dynamicSchema';
 import { DynamicRunnerView } from '@/modules/components/DynamicRunnerView';
+import { COMPREHENSIVE_DYNAMIC_SCHEMA } from '@/utils/dynamicAuditMock';
 
 type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report' | 'dynamic_runner';
 
@@ -516,7 +517,10 @@ export default function HomePage() {
 
   // --- Handler: Resume Audit ---
   const handleResumeAudit = (session: AuditSessionData) => {
-    const template = templates.find(t => t.id === session.checklistId);
+    let template = templates.find(t => t.id === session.checklistId);
+    if (!template && session.checklistId === 'dyn_template_001') {
+      template = COMPREHENSIVE_DYNAMIC_SCHEMA as any;
+    }
     if (!template) {
       alert("The template for this session could not be found.");
       return;
@@ -982,7 +986,7 @@ export default function HomePage() {
 
         {/* DYNAMIC RUNNER VIEW */}
         {view === 'dynamic_runner' && (
-          <DynamicRunnerView schema={activeSchema as any} onBack={() => setView('dashboard')} />
+          <DynamicRunnerView schema={activeSchema as any} initialSession={activeSession as any} onBack={() => setView('dashboard')} />
         )}
 
       </main>

@@ -7,12 +7,13 @@ import { IndexedDBManager } from '@/modules/offline/IndexedDBManager';
 
 interface DynamicRunnerViewProps {
   schema: DynamicChecklistSchema;
+  initialSession?: DynamicAuditSession | null;
   onBack: () => void;
 }
 
 const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('veriaudit-sync-channel') : null;
 
-export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
+export function DynamicRunnerView({ schema, initialSession, onBack }: DynamicRunnerViewProps) {
   const effectiveSchema = (schema && schema.components) ? schema : COMPREHENSIVE_DYNAMIC_SCHEMA;
   const [session, setSession] = useState<DynamicAuditSession | null>(null);
 
@@ -22,7 +23,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.data.type === 'SESSIONS_UPDATED') {
-        const stored = await IndexedDBManager.getSession('active_dynamic_session');
+        const stored = await IndexedDBManager.getSession(session?.id || 'active_dynamic_session');
         if (stored && (stored as any).schemaId === effectiveSchema.id) {
           setSession(stored as any);
         }
@@ -33,11 +34,16 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
     return () => {
       syncChannel.removeEventListener('message', handleMessage);
     };
-  }, [effectiveSchema.id]);
+  }, [effectiveSchema.id, session?.id]);
 
   // Initialize session response data structure from IndexedDB
   useEffect(() => {
     const initSession = async () => {
+      if (initialSession) {
+        setSession(initialSession);
+        return;
+      }
+
       const stored = await IndexedDBManager.getSession('active_dynamic_session');
       if (stored && (stored as any).schemaId === effectiveSchema.id) {
         setSession(stored as any);
@@ -57,7 +63,7 @@ export function DynamicRunnerView({ schema, onBack }: DynamicRunnerViewProps) {
       }
     };
     initSession();
-  }, [effectiveSchema.id]);
+  }, [effectiveSchema.id, initialSession]);
 
   const handleSave = async (updatedSession: DynamicAuditSession, silent?: boolean) => {
     try {
