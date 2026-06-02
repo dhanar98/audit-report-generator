@@ -4,39 +4,132 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 213 31% 91%;
+    /* ── Brand Core ── */
+    --av-navy:         #1B3D72;
+    --av-navy-dark:    #122B54;
+    --av-navy-light:   #2D5499;
+    --av-teal:         #3BB885;
+    --av-teal-dark:    #2A9068;
+    --av-teal-light:   #5DCFA0;
+    --av-amber:        #F5A623;
+    --av-amber-light:  #FBBF4A;
+    --av-red:          #E8524A;
+    --av-red-light:    #F07870;
 
-    --card: 222 47% 9%;
-    --card-foreground: 213 31% 91%;
+    /* ── Pastel Fills ── */
+    --pastel-mint:     #D4F2E8;
+    --pastel-sky:      #D2E6F7;
+    --pastel-peach:    #FAE3D0;
+    --pastel-lavender: #E8DAFC;
+    --pastel-lemon:    #FEF3C7;
+    --pastel-rose:     #FCE4E4;
+    --pastel-slate:    #E4EAF2;
 
-    --popover: 222 47% 9%;
-    --popover-foreground: 215 20.2% 65.1%;
+    /* ── Neutrals ── */
+    --neutral-0:   #FFFFFF;
+    --neutral-50:  #F8FAFB;
+    --neutral-100: #EEF1F4;
+    --neutral-200: #D1D9E0;
+    --neutral-300: #B0BCCA;
+    --neutral-400: #8898A8;
+    --neutral-500: #627384;
+    --neutral-600: #47586A;
+    --neutral-700: #2F3E4E;
+    --neutral-800: #1C2A36;
+    --neutral-900: #0E161E;
 
-    --primary: 250 89% 65%;
-    --primary-foreground: 210 20% 98%;
+    /* ── Semantic Colors ── */
+    --color-bg:           var(--neutral-50);
+    --color-surface:      var(--neutral-0);
+    --color-border:       var(--neutral-100);
+    --color-border-input: var(--neutral-200);
+    --color-text-primary: var(--neutral-800);
+    --color-text-secondary: var(--neutral-500);
+    --color-text-disabled: var(--neutral-300);
+    --color-text-inverse: var(--neutral-0);
 
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 20% 98%;
+    --color-compliant:        var(--av-teal);
+    --color-compliant-bg:     var(--pastel-mint);
+    --color-partial:          var(--av-amber);
+    --color-partial-bg:       var(--pastel-lemon);
+    --color-noncompliant:     var(--av-red);
+    --color-noncompliant-bg:  var(--pastel-rose);
 
-    --muted: 223 47% 14%;
-    --muted-foreground: 215.4 16.3% 56.9%;
+    --color-primary:       var(--av-teal);
+    --color-primary-dark:  var(--av-teal-dark);
+    --color-accent:        var(--av-navy);
 
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 20% 98%;
+    /* ── Typography ── */
+    --font-display: var(--font-display, 'Nunito', sans-serif);
+    --font-body:    var(--font-sans, 'Inter', sans-serif);
+    --font-mono:    var(--font-mono, 'JetBrains Mono', monospace);
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 20% 98%;
+    /* ── Spacing ── */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-8:  32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
 
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 250 89% 65%;
+    /* ── Border Radius ── */
+    --radius-sm:   4px;
+    --radius-md:   8px;
+    --radius-lg:   12px;
+    --radius-xl:   16px;
+    --radius-2xl:  24px;
+    --radius-full: 9999px;
 
-    --radius: 0.75rem;
+    /* ── Shadows ── */
+    --shadow-xs:  0 1px 3px rgba(0,0,0,0.06);
+    --shadow-sm:  0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md:  0 4px 16px rgba(0,0,0,0.10);
+    --shadow-lg:  0 8px 32px rgba(0,0,0,0.12);
+    --shadow-xl:  0 16px 48px rgba(0,0,0,0.14);
 
-    --risk-high: 0 84% 60%;
-    --risk-medium: 38 92% 50%;
-    --risk-low: 142 76% 45%;
+    /* ── Transitions ── */
+    --transition-fast:   150ms ease-out;
+    --transition-base:   200ms ease-out;
+    --transition-slow:   300ms ease-out;
+
+    /* ── Mapped Tailwind Variables ── */
+    --background: var(--color-bg);
+    --foreground: var(--color-text-primary);
+    
+    --card: var(--color-surface);
+    --card-foreground: var(--color-text-primary);
+    
+    --popover: var(--color-surface);
+    --popover-foreground: var(--color-text-secondary);
+    
+    --primary: var(--av-navy); /* Base brand accent: Navy */
+    --primary-foreground: var(--neutral-0);
+    
+    --secondary: var(--color-primary); /* Secondary: Teal */
+    --secondary-foreground: var(--neutral-0);
+    
+    --muted: var(--neutral-100);
+    --muted-foreground: var(--color-text-secondary);
+    
+    --accent: var(--neutral-100);
+    --accent-foreground: var(--color-text-primary);
+    
+    --destructive: var(--color-noncompliant);
+    --destructive-foreground: var(--neutral-0);
+    
+    --border: var(--color-border);
+    --input: var(--color-border-input);
+    --ring: var(--av-teal);
+    
+    --radius: 12px;
+
+    --risk-high: var(--av-red);
+    --risk-medium: var(--av-amber);
+    --risk-low: var(--av-teal);
   }
 }
 
@@ -53,16 +146,21 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--av-navy);
   }
 }
 
-/* Glassmorphism panel styling */
+/* Glassmorphism panel styling (Aura Veritas Light style) */
 .glass-panel {
-  @apply bg-card/60 backdrop-blur-md border border-border/80 shadow-lg rounded-xl transition-all duration-200;
+  @apply bg-white/90 border border-neutral-100 shadow-sm rounded-xl transition-all duration-200;
 }
 
 .glass-panel:hover {
-  @apply bg-card/85 border-border/100;
+  @apply border-neutral-200 shadow-md;
 }
 
 /* Custom Scrollbars */
@@ -76,11 +174,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-md;
+  background-color: var(--neutral-300);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/40;
+  background-color: var(--neutral-400);
 }
 
 /* Print CSS Media Queries */

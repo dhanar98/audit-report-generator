@@ -10,7 +10,9 @@ import {
   FileText,
   AlertOctagon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +26,36 @@ import {
   AuditResponse,
   RiskLevel
 } from '@/types/schema';
+
+const getSectionColors = (sectionTitle: string = '') => {
+  const title = sectionTitle.toLowerCase();
+  if (title.includes('board') || title.includes('distribution') || title.includes('panel')) {
+    return { bg: '#D2E6F7', accent: '#1B3D72' }; // Sky
+  }
+  if (title.includes('earth') || title.includes('ups') || title.includes('power')) {
+    return { bg: '#E8DAFC', accent: '#7C3AED' }; // Lavender
+  }
+  if (title.includes('wire') || title.includes('circuit') || title.includes('conduit') || title.includes('cable')) {
+    return { bg: '#D4F2E8', accent: '#2A9068' }; // Mint
+  }
+  if (title.includes('load') || title.includes('energy') || title.includes('demand') || title.includes('meter')) {
+    return { bg: '#FEF3C7', accent: '#B8760A' }; // Lemon
+  }
+  if (title.includes('light') || title.includes('fan') || title.includes('lamp')) {
+    return { bg: '#FAE3D0', accent: '#E06A1A' }; // Peach
+  }
+  if (title.includes('ac') || title.includes('cooling') || title.includes('fire') || title.includes('safety') || title.includes('hvac')) {
+    return { bg: '#FCE4E4', accent: '#C03A33' }; // Rose
+  }
+  return { bg: '#E4EAF2', accent: '#2F3E4E' }; // Slate fallback
+};
+
+const RISK_CONFIG = {
+  HIGH: { color: '#C03A33', bg: '#FCE4E4', dot: '#E8524A', label: 'High' },
+  MEDIUM: { color: '#B8760A', bg: '#FEF3C7', dot: '#F5A623', label: 'Medium' },
+  LOW: { color: '#2A9068', bg: '#D4F2E8', dot: '#3BB885', label: 'Low' },
+  NONE: { color: '#627384', bg: '#EEF1F4', dot: '#D1D9E0', label: 'None' }
+};
 
 interface AuditRunnerProps {
   schema: ChecklistSchema;
@@ -343,161 +375,199 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
               {/* Table section render */}
               {activeSection.type === 'table' && activeSection.tables ? (
                 <div className="space-y-6">
-                  {activeSection.tables.map((table) => (
-                    <TableEditor
-                      key={table.id}
-                      table={table}
-                      onChange={() => {}} // Read-only helper wrapper or live entry updates if needed
-                      readOnly={false}
-                    />
-                  ))}
+                  {activeSection.tables.map((table) => {
+                    const tableResp = getResponse(table.id) || { fieldId: table.id, value: '', tableRows: [] };
+                    return (
+                      <TableEditor
+                        key={table.id}
+                        table={table}
+                        isBuilderMode={false}
+                        readOnly={false}
+                        sessionCells={tableResp.tableRows || []}
+                        onCellsChange={(cells) => updateResponse(table.id, { tableRows: cells })}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {activeSection.fields?.map((field) => {
                     const resp = getResponse(field.id) || { fieldId: field.id, value: '' };
-                    
+                    const colors = getSectionColors(activeSection.title);
+                    const risk = RISK_CONFIG[field.riskLevel] || RISK_CONFIG.NONE;
+
                     return (
-                      <div key={field.id} className="p-4 rounded-xl border border-border/80 bg-card/25 backdrop-blur-md space-y-3">
-                        <div className="flex items-start justify-between">
-                          <label className="text-sm font-medium text-foreground/90 leading-tight">
-                            {field.title} {field.required && <span className="text-red-400">*</span>}
-                          </label>
-                          {field.riskLevel !== 'NONE' && (
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                              field.riskLevel === 'HIGH' ? 'bg-red-500/20 text-red-400' :
-                              field.riskLevel === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-green-500/20 text-green-400'
-                            }`}>
-                              {field.riskLevel}
+                      <div key={field.id} className="rounded-xl overflow-hidden border border-neutral-100 bg-white shadow-sm hover:shadow-md transition-all duration-200 text-left">
+                        {/* Pastel Section Band Header */}
+                        <div 
+                          className="px-4 py-2 flex items-center justify-between"
+                          style={{ backgroundColor: colors.bg }}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span 
+                              className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-white/70"
+                              style={{ color: colors.accent }}
+                            >
+                              {field.id}
                             </span>
+                            <span 
+                              className="text-[10px] font-bold uppercase tracking-wider"
+                              style={{ color: colors.accent }}
+                            >
+                              {activeSection.title}
+                            </span>
+                          </div>
+                          {field.riskLevel && field.riskLevel !== 'NONE' && (
+                            <div className="flex items-center space-x-2">
+                              <span 
+                                className="text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center space-x-1"
+                                style={{ backgroundColor: risk.bg, color: risk.color }}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: risk.dot }} />
+                                {risk.label} Risk
+                              </span>
+                            </div>
                           )}
                         </div>
 
-                        {/* Rendering based on field type */}
-                        {field.type === 'yes_no' && (
-                          <div className="space-y-3">
-                            <div className="flex space-x-2">
-                              {['YES', 'NO', 'N/A'].map((opt) => {
-                                const isSelected = resp.value === opt;
-                                return (
-                                  <Button
-                                    key={opt}
-                                    size="sm"
-                                    variant={isSelected ? 'default' : 'outline'}
-                                    onClick={() => {
-                                      // If user clicks NO, automatically trigger standard recommendation
-                                      const recommendation = opt === 'NO' ? (field.recoMapping || 'Rectification needed.') : '';
-                                      updateResponse(field.id, { 
-                                        value: opt,
-                                        recommendation
-                                      });
-                                    }}
-                                    className={`h-8 px-4 text-xs font-semibold ${
-                                      isSelected && opt === 'YES' ? 'bg-green-600 hover:bg-green-700' :
-                                      isSelected && opt === 'NO' ? 'bg-red-600 hover:bg-red-700' :
-                                      isSelected && opt === 'N/A' ? 'bg-muted-foreground' : ''
-                                    }`}
-                                  >
-                                    {opt}
-                                  </Button>
-                                );
-                              })}
-                            </div>
+                        {/* Main content body */}
+                        <div className="p-4 space-y-4">
+                          {/* Question */}
+                          <h4 className="text-sm font-medium text-neutral-800 leading-relaxed">
+                            {field.title} {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                          </h4>
 
-                            {/* Failure Details: Remarks & Photos triggered if response is NO */}
-                            {resp.value === 'NO' && (
-                              <div className="border border-red-500/30 bg-red-500/5 p-3 rounded-lg space-y-3 transition-all duration-200">
-                                <div className="flex items-center space-x-2 text-red-400">
-                                  <AlertOctagon className="w-4 h-4" />
-                                  <span className="text-xs font-bold uppercase tracking-wider">Non-Compliant Remediation Block</span>
-                                </div>
-                                
-                                <div className="space-y-1">
-                                  <span className="text-[10px] text-muted-foreground font-semibold block">Automatic Recommendation Map</span>
-                                  <Input
-                                    value={resp.recommendation || ''}
-                                    onChange={(e) => updateResponse(field.id, { recommendation: e.target.value })}
-                                    className="h-8 text-xs bg-card border-red-500/20 focus:border-red-500"
-                                  />
-                                </div>
+                          {/* Rendering based on field type */}
+                          {field.type === 'yes_no' && (
+                            <div className="space-y-4">
+                              <div className="flex space-x-2">
+                                {([
+                                  { key: 'YES', label: 'Compliant', icon: <CheckCircle className="w-3.5 h-3.5 mr-1.5" />, activeColor: '#3BB885', activeBg: '#D4F2E8' },
+                                  { key: 'NO', label: 'Not Compliant', icon: <XCircle className="w-3.5 h-3.5 mr-1.5" />, activeColor: '#E8524A', activeBg: '#FCE4E4' },
+                                  { key: 'N/A', label: 'N/A', icon: <AlertCircle className="w-3.5 h-3.5 mr-1.5" />, activeColor: '#627384', activeBg: '#EEF1F4' }
+                                ] as const).map((opt) => {
+                                  const isSelected = resp.value === opt.key;
+                                  return (
+                                    <button
+                                      key={opt.key}
+                                      type="button"
+                                      onClick={() => {
+                                        const recommendation = opt.key === 'NO' ? (field.recoMapping || 'Rectification needed.') : '';
+                                        updateResponse(field.id, { 
+                                          value: opt.key,
+                                          recommendation
+                                        });
+                                      }}
+                                      style={{
+                                        color: isSelected ? opt.activeColor : '#8898A8',
+                                        backgroundColor: isSelected ? opt.activeBg : '#F8FAFB',
+                                        border: isSelected ? `1.5px solid ${opt.activeColor}` : '1.5px solid transparent'
+                                      }}
+                                      className="h-9 px-4 rounded-lg text-xs font-semibold flex items-center transition-all duration-150 active:scale-97 select-none"
+                                    >
+                                      {opt.icon}
+                                      {opt.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
 
-                                <div className="space-y-1">
-                                  <span className="text-[10px] text-muted-foreground font-semibold block">Observations & Audit Remarks</span>
-                                  <Textarea
-                                    value={resp.remarks || ''}
-                                    onChange={(e) => updateResponse(field.id, { remarks: e.target.value })}
-                                    placeholder="Provide description of hazard, wiring issues, load imbalance etc."
-                                    className="text-xs min-h-[50px] bg-card border-red-500/20 focus:border-red-500"
-                                  />
-                                </div>
-
-                                {/* Camera integration */}
-                                <div className="space-y-2">
-                                  <span className="text-[10px] text-muted-foreground font-semibold block">Photo Evidence (Max 3)</span>
-                                  <div className="flex items-center space-x-2">
-                                    <label className="cursor-pointer flex items-center justify-center h-8 px-3 rounded border border-dashed border-red-500/30 hover:border-red-500 text-xs text-red-400 font-semibold space-x-1">
-                                      <Camera className="w-3.5 h-3.5" />
-                                      <span>Capture Evidence</span>
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleImageUpload(field.id, e)}
-                                        className="hidden"
-                                      />
-                                    </label>
+                              {/* Failure Details: Remarks & Photos triggered if response is NO */}
+                              {resp.value === 'NO' && (
+                                <div className="border border-[#E8524A]/20 bg-[#FCE4E4]/10 p-4 rounded-lg space-y-3.5 transition-all duration-200">
+                                  <div className="flex items-center space-x-2 text-[#E8524A]">
+                                    <AlertOctagon className="w-4 h-4" />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">Non-Compliance Findings</span>
+                                  </div>
+                                  
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide block">Automatic Recommendation Map</span>
+                                    <Input
+                                      value={resp.recommendation || ''}
+                                      onChange={(e) => updateResponse(field.id, { recommendation: e.target.value })}
+                                      style={{ borderWidth: '1.5px' }}
+                                      className="h-9 text-xs bg-white border-neutral-200 focus:border-[#E8524A] focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-[#E8524A]/10"
+                                    />
                                   </div>
 
-                                  {/* Render uploaded base64 photos for this session */}
-                                  {session.photos.length > 0 && (
-                                    <div className="grid grid-cols-3 gap-2 pt-2">
-                                      {session.photos.map((photo) => (
-                                        <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-border/80 bg-muted/10 h-16 w-full">
-                                          <img src={photo.base64Data} alt="evidence" className="object-cover w-full h-full" />
-                                          <button
-                                            onClick={() => deletePhoto(photo.id)}
-                                            className="absolute top-1 right-1 bg-red-600/90 text-white rounded p-0.5 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        </div>
-                                      ))}
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide block">Observations & Audit Remarks</span>
+                                    <Textarea
+                                      value={resp.remarks || ''}
+                                      onChange={(e) => updateResponse(field.id, { remarks: e.target.value })}
+                                      placeholder="Provide description of hazard, wiring issues, load imbalance etc."
+                                      style={{ borderWidth: '1.5px' }}
+                                      className="text-xs min-h-[60px] bg-white border-neutral-200 focus:border-[#E8524A] focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-[#E8524A]/10"
+                                    />
+                                  </div>
+
+                                  {/* Camera integration */}
+                                  <div className="space-y-2">
+                                    <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide block">Photo Evidence (Max 3)</span>
+                                    <div className="flex items-center space-x-2">
+                                      <label className="cursor-pointer flex items-center justify-center h-8 px-3 rounded border border-dashed border-[#E8524A]/30 hover:border-[#E8524A] text-xs text-[#E8524A] font-semibold space-x-1">
+                                        <Camera className="w-3.5 h-3.5" />
+                                        <span>Capture Evidence</span>
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) => handleImageUpload(field.id, e)}
+                                          className="hidden"
+                                        />
+                                      </label>
                                     </div>
-                                  )}
+
+                                    {/* Render uploaded base64 photos for this session */}
+                                    {session.photos.length > 0 && (
+                                      <div className="grid grid-cols-3 gap-2 pt-2">
+                                        {session.photos.map((photo) => (
+                                          <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50 h-16 w-full">
+                                            <img src={photo.base64Data} alt="evidence" className="object-cover w-full h-full" />
+                                            <button
+                                              onClick={() => deletePhoto(photo.id)}
+                                              className="absolute top-1 right-1 bg-red-600/90 text-white rounded p-0.5 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              )}
+                            </div>
+                          )}
 
-                        {field.type === 'text' && (
-                          <Input
-                            value={resp.value || ''}
-                            onChange={(e) => updateResponse(field.id, { value: e.target.value })}
-                            className="bg-card border-border/60 focus:border-primary h-9 text-xs"
-                            placeholder="Enter text value"
-                          />
-                        )}
-
-                        {field.type === 'textarea' && (
-                          <Textarea
-                            value={resp.value || ''}
-                            onChange={(e) => updateResponse(field.id, { value: e.target.value })}
-                            className="bg-card border-border/60 focus:border-primary text-xs"
-                            placeholder="Write observations..."
-                          />
-                        )}
-
-                        {field.type === 'signature' && (
-                          <div className="space-y-2">
+                          {field.type === 'text' && (
                             <Input
                               value={resp.value || ''}
                               onChange={(e) => updateResponse(field.id, { value: e.target.value })}
-                              placeholder="Type Auditor / Branch Manager Name as Signature Authorization"
-                              className="bg-card border-border/60 focus:border-primary h-9 text-xs font-mono"
+                              className="h-9 text-xs bg-white border-neutral-200 focus:border-[#3BB885] focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-[#3BB885]/10"
+                              placeholder="Enter text value"
                             />
-                          </div>
-                        )}
+                          )}
+
+                          {field.type === 'textarea' && (
+                            <Textarea
+                              value={resp.value || ''}
+                              onChange={(e) => updateResponse(field.id, { value: e.target.value })}
+                              className="text-xs bg-white border-neutral-200 focus:border-[#3BB885] focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-[#3BB885]/10"
+                              placeholder="Write observations..."
+                            />
+                          )}
+
+                          {field.type === 'signature' && (
+                            <div className="space-y-2">
+                              <Input
+                                value={resp.value || ''}
+                                onChange={(e) => updateResponse(field.id, { value: e.target.value })}
+                                placeholder="Type Auditor / Branch Manager Name as Signature Authorization"
+                                className="h-9 text-xs bg-white border-neutral-200 focus:border-[#3BB885] focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-[#3BB885]/10 font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

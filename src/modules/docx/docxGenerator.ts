@@ -175,6 +175,22 @@ export async function generateDocx(schema: DynamicChecklistSchema, session: Dyna
       if (comp.description) {
         children.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: comp.description, color: "64748b" })] }));
       }
+
+      // Render child fields if any (e.g. for converted V1 header fields)
+      const headerFields = (comp as any).fields;
+      if (headerFields && headerFields.length > 0) {
+        const tableRows = headerFields.map((f: any) => {
+          const fResp = session.responses.find(r => r.componentId === f.id);
+          const fValue = fResp?.value || '';
+          return new TableRow({
+            children: [
+              new TableCell({ width: { size: 35, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: f.title, bold: true })] })] }),
+              new TableCell({ width: { size: 65, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: fValue })] })
+            ]
+          });
+        });
+        children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tableRows }), new Paragraph({ spacing: { after: 200 } }));
+      }
     }
 
     else if (comp.type === 'rich_content') {

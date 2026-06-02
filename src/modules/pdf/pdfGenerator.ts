@@ -331,6 +331,16 @@ const PDF_TEMPLATE = `
       {{#if description}}
         <div style="color: #64748b; margin-bottom: 15px; font-size: 10px;">{{description}}</div>
       {{/if}}
+      {{#if fields.length}}
+        <table class="metadata-table" style="margin-bottom: 20px;">
+          {{#each fields}}
+            <tr>
+              <td class="label">{{title}}</td>
+              <td>{{#with (getAnswer ../../session.responses id) as |resp|}}{{resp.value}}{{/with}}</td>
+            </tr>
+          {{/each}}
+        </table>
+      {{/if}}
     {{/if}}
 
     {{#if (eq type 'rich_content')}}

@@ -2,12 +2,16 @@ export type FieldType =
   | 'text'
   | 'textarea'
   | 'yes_no'
+  | 'yes_no_na'
+  | 'multi_option'
   | 'checkbox'
   | 'select'
   | 'score'
   | 'image'
   | 'signature'
-  | 'remarks';
+  | 'remarks'
+  | 'date'
+  | 'number';
 
 export type SectionType =
   | 'header'
@@ -15,7 +19,14 @@ export type SectionType =
   | 'observation'
   | 'table'
   | 'recommendation'
-  | 'signature';
+  | 'signature'
+  | 'rich_content'
+  | 'dynamic_dropdown'
+  | 'yes_no_na'
+  | 'multi_option'
+  | 'image_upload'
+  | 'image_carousel'
+  | 'kpi_summary';
 
 export type RiskLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 
@@ -27,13 +38,24 @@ export interface TemplateFieldSchema {
   riskLevel: RiskLevel;
   recoMapping?: string;
   defaultValue?: string;
+  options?: string[]; // for multi_option fields
+}
+
+export type TableCellType = 'text' | 'number' | 'yes_no' | 'dropdown' | 'textarea' | 'date';
+
+export interface TableColumn {
+  id: string;
+  header: string;
+  type: TableCellType;
+  options?: string[]; // for dropdown cells
+  calculation?: 'SUM' | 'AVG' | 'PRODUCT' | 'NONE'; // column summary calculation
 }
 
 export interface TemplateTableSchema {
   id: string;
   title: string;
-  columns: string[];
-  rows: string[][];
+  columns: (string | TableColumn)[];
+  rows: any[][];
 }
 
 export interface TemplateSectionSchema {
@@ -61,6 +83,9 @@ export interface AuditResponse {
   remarks?: string;
   recommendation?: string;
   status?: 'Open' | 'Resolved';
+  signatureBase64?: string; // signature support
+  photos?: any[]; // section photos / component photos support
+  tableRows?: any[]; // grid table support
 }
 
 export interface AuditSessionData {

@@ -49,7 +49,7 @@ interface ChecklistBuilderProps {
 }
 
 export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: ChecklistBuilderProps) {
-  const isV2 = (initialSchema as any).version === 2;
+  const isV2 = false; // V1 is the single active report template system
 
   // States
   const [schemaV1, setSchemaV1] = useState<ChecklistSchema>(!isV2 ? (initialSchema as ChecklistSchema) : {} as any);
@@ -550,22 +550,37 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
                 </Button>
               </div>
             ) : (
-              // V1 options
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="xs" variant="outline" onClick={() => addSection('header')} className="text-[11px] justify-start px-2 py-1">
+              // V1 options (merged with all useful features from V2)
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <Button size="xs" variant="outline" onClick={() => addSection('header')} className="text-[10px] justify-start px-2 py-1">
                   <Plus className="w-3 h-3 mr-1" /> Header Info
                 </Button>
-                <Button size="xs" variant="outline" onClick={() => addSection('checklist')} className="text-[11px] justify-start px-2 py-1">
+                <Button size="xs" variant="outline" onClick={() => addSection('rich_content')} className="text-[10px] justify-start px-2 py-1">
+                  <Plus className="w-3 h-3 mr-1" /> Rich guidelines
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => addSection('dynamic_dropdown')} className="text-[10px] justify-start px-2 py-1">
+                  <Plus className="w-3 h-3 mr-1" /> Client selector
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => addSection('checklist')} className="text-[10px] justify-start px-2 py-1">
                   <Plus className="w-3 h-3 mr-1" /> Checklist
                 </Button>
-                <Button size="xs" variant="outline" onClick={() => addSection('table')} className="text-[11px] justify-start px-2 py-1">
+                <Button size="xs" variant="outline" onClick={() => addSection('table')} className="text-[10px] justify-start px-2 py-1">
                   <Plus className="w-3 h-3 mr-1" /> Data Grid Table
                 </Button>
-                <Button size="xs" variant="outline" onClick={() => addSection('observation')} className="text-[11px] justify-start px-2 py-1">
+                <Button size="xs" variant="outline" onClick={() => addSection('observation')} className="text-[10px] justify-start px-2 py-1">
                   <Plus className="w-3 h-3 mr-1" /> Observations
                 </Button>
-                <Button size="xs" variant="outline" onClick={() => addSection('signature')} className="text-[11px] justify-start px-2 py-1" style={{ gridColumn: 'span 2' }}>
+                <Button size="xs" variant="outline" onClick={() => addSection('signature')} className="text-[10px] justify-start px-2 py-1">
                   <Plus className="w-3 h-3 mr-1" /> Signature Pad
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => addSection('image_upload')} className="text-[10px] justify-start px-2 py-1">
+                  <Plus className="w-3 h-3 mr-1" /> Photo uploads
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => addSection('image_carousel')} className="text-[10px] justify-start px-2 py-1">
+                  <Plus className="w-3 h-3 mr-1" /> Photo slider
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => addSection('kpi_summary')} className="text-[10px] justify-start px-2 py-1 col-span-2">
+                  <Plus className="w-3 h-3 mr-1" /> KPI Summary Card
                 </Button>
               </div>
             )}
@@ -925,8 +940,90 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
                         key={table.id}
                         table={table}
                         onChange={handleTableChange}
+                        isBuilderMode={true}
                       />
                     ))}
+                  </div>
+                ) : activeSection.type === 'rich_content' ? (
+                  <div className="p-6 rounded-xl border border-border/80 bg-card/20 space-y-4 text-left">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">HTML / Guideline Rich Content Block</span>
+                    <Textarea
+                      value={activeSection.description || ''}
+                      onChange={(e) => {
+                        const nextSecs = [...schemaV1.sections];
+                        nextSecs[activeSectionIndex].description = e.target.value;
+                        updateSchemaV1(prev => ({ ...prev, sections: nextSecs }));
+                      }}
+                      placeholder="Enter guidelines text or HTML..."
+                      className="min-h-[160px] text-xs bg-card focus:border-primary"
+                    />
+                  </div>
+                ) : activeSection.type === 'dynamic_dropdown' ? (
+                  <div className="p-6 rounded-xl border border-border/85 bg-card/25 space-y-4 text-left">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Dynamic Dropdowns (Client, Site, Auditor)</span>
+                    <p className="text-xs text-muted-foreground">
+                      This component automatically displays organization master data dropdowns.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 border rounded bg-card/40 text-center text-xs">
+                        <span className="font-bold block mb-1">Client Selector</span>
+                        <select disabled className="w-full text-xs border rounded p-1"><option>Select Client</option></select>
+                      </div>
+                      <div className="p-3 border rounded bg-card/40 text-center text-xs">
+                        <span className="font-bold block mb-1">Site Selector</span>
+                        <select disabled className="w-full text-xs border rounded p-1"><option>Select Site</option></select>
+                      </div>
+                      <div className="p-3 border rounded bg-card/40 text-center text-xs">
+                        <span className="font-bold block mb-1">Auditor Selector</span>
+                        <select disabled className="w-full text-xs border rounded p-1"><option>Select Auditor</option></select>
+                      </div>
+                    </div>
+                  </div>
+                ) : activeSection.type === 'image_upload' ? (
+                  <div className="p-6 rounded-xl border border-border/85 bg-card/25 space-y-4 text-left">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">File & Camera Upload Component</span>
+                    <div className="flex items-center space-x-4">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground block font-bold mb-1">Max Images Upload Limit</span>
+                        <Input
+                          type="number"
+                          value={parseInt(activeSection.description || '3') || 3}
+                          onChange={(e) => {
+                            const nextSecs = [...schemaV1.sections];
+                            nextSecs[activeSectionIndex].description = e.target.value;
+                            updateSchemaV1(prev => ({ ...prev, sections: nextSecs }));
+                          }}
+                          className="h-8 text-xs w-32 bg-card"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : activeSection.type === 'image_carousel' ? (
+                  <div className="p-6 rounded-xl border border-border/85 bg-card/25 space-y-4 text-left">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Image Carousel / Slider</span>
+                    <p className="text-xs text-muted-foreground">
+                      Displays a photo slider for images captured during the audit.
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-bold text-muted-foreground">Link target (Optional Section ID):</span>
+                      <Input
+                        value={activeSection.description || ''}
+                        onChange={(e) => {
+                          const nextSecs = [...schemaV1.sections];
+                          nextSecs[activeSectionIndex].description = e.target.value;
+                          updateSchemaV1(prev => ({ ...prev, sections: nextSecs }));
+                        }}
+                        placeholder="e.g. sec_photos_1"
+                        className="h-8 text-xs max-w-xs bg-card"
+                      />
+                    </div>
+                  </div>
+                ) : activeSection.type === 'kpi_summary' ? (
+                  <div className="p-6 rounded-xl border border-border/85 bg-card/25 space-y-4 text-left">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Compliance KPI Summary Card</span>
+                    <p className="text-xs text-muted-foreground">
+                      This component automatically compiles a compliance metric scorecard, listing compliance percentage and compliance risks.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1125,11 +1222,27 @@ export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: Chec
                   >
                     <option value="text">Text Input</option>
                     <option value="textarea">Textarea Block</option>
-                    <option value="yes_no">Yes / No / NA Options</option>
+                    <option value="yes_no">Yes / No Switch (V1 Legacy)</option>
+                    <option value="yes_no_na">Yes / No / NA Options (V2 compatible)</option>
+                    <option value="multi_option">Multi-Option Dropdown / Select</option>
+                    <option value="date">Date Picker</option>
+                    <option value="number">Number Input</option>
                     <option value="image">Camera / Photo Upload</option>
                     <option value="signature">Signature Pad</option>
                   </select>
                 </div>
+
+                {activeField.type === 'multi_option' && (
+                  <div className="space-y-1">
+                    <span className="font-semibold text-muted-foreground block font-bold">Options (Comma separated)</span>
+                    <Input
+                      value={activeField.options?.join(', ') || ''}
+                      onChange={(e) => updateFieldSettings({ ...activeField!, options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })}
+                      placeholder="Option A, Option B, Option C"
+                      className="text-xs bg-card"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-card/20">
                   <span className="font-semibold text-muted-foreground">Required Validation</span>

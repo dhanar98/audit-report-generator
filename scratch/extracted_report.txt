@@ -1,0 +1,2351 @@
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT
+FOR
+INDIAN BANK – PALARIVATTOM BRANCH
+(2025-2026)
+
+Prepared by
+AURA VERITAS ENGINEERING AND CONSULTANCY PRIVATE LIMITED
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+DISCLAIMER
+THIS DOCUMENT HAS BEEN PREPARED BASED ON SITE OBSERVATIONS, DOCUMENT REVIEWS, AND DISCUSSIONS
+CONDUCTED DURING THE AUDIT. THE FINDINGS ARE LIMITED TO THE CONDITIONS OBSERVED AND INFORMATION
+MADE AVAILABLE AT THE TIME OF THE ASSESSMENT, AND WITHIN THE AGREED SCOPE OF WORK.
+
+THIS REPORT IS INTENDED SOLELY FOR THE CLIENT’S USE TO SUPPORT ELECTRICAL SAFETY IMPROVEMENTS. THE
+ISSUING ORGANIZATION ACCEPTS NO RESPONSIBILITY FOR ANY USE OF THIS REPORT BY THIRD PARTIES OR FOR
+ACTIONS TAKEN BEYOND THE INTENDED SCOPE.
+
+ALL TECHNICAL CONTENT REMAINS THE PROPERTY OF THE ISSUING ORGANIZATION UNLESS OTHERWISE AGREED IN
+WRITING.
+
+DOCUMENT REVISION
+REV.
+
+DATE
+
+REASON OF ISSUE
+
+FILE NAME
+
+0
+
+30/05/2026
+
+Issued for Client Review
+
+Electrical Safety and Energy Audit Report
+
+PREPARED BY
+
+REVIEWED BY
+
+AUTHORIZED BY
+
+JP
+
+MK
+
+JJR
+
+Page 2 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+TABLE OF CONTENTS
+PAGES
+ABBREVIATIONS ............................................................................................................................................... 4
+1
+
+EXECUTIVE SUMMARY ............................................................................................................................ 5
+
+2
+
+BASIC TERMINOLOGY ............................................................................................................................. 6
+
+3
+
+TYPES OF ELECTRICAL INJURIES............................................................................................................ 8
+
+4
+
+INTRODUCTION ...................................................................................................................................... 9
+
+5
+
+SCOPE FOR ELECTRICAL AUDIT AND ENERGY AUDIT ......................................................................... 10
+
+6
+
+METHODOLOGY .................................................................................................................................... 11
+
+7
+
+EARTHING RESISTANCE: ...................................................................................................................... 12
+
+8
+
+LOAD MEASUREMENT STUDY .............................................................................................................. 12
+
+9
+
+THERMOGRAPHY .................................................................................................................................. 14
+
+10
+
+TOTAL LIGHTING CONNECTED LOAD .................................................................................................. 18
+
+11
+
+CONCLUSION ......................................................................................................................................... 20
+
+APPENDIX 1 – ELECTRICAL SAFETY AND ENERGY AUDIT REPORT - CHECKLIST ........................................ 22
+
+Page 3 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+ABBREVIATIONS
+ACB
+
+AIR CIRCUIT BREAKER
+
+CEA
+
+CENTRAL ELECTRICITY AUTHORITY
+
+CT
+
+CURRENT TRANSFORMER
+
+DG
+
+DIESEL GENERATOR
+
+ELCB
+
+ELECTRIC LEAKAGE CIRCUIT BREAKER
+
+ESA
+
+ELECTRICAL SAFETY AUDIT
+
+FE
+
+FIRE EXIT
+
+HAC
+
+HAZARDOUS AREA CLASSIFICATION
+
+IE
+
+INSPECTOR ELECTRICAL
+
+IEC
+
+INTERNATIONAL ELECTROTECHNICAL COMMISSION
+
+IR
+
+INSULATION RESISTANCE
+
+LT
+
+LOW TENSION PANELS
+
+MCB
+
+MINIATURE CIRCUIT BREAKERS
+
+MCC
+
+MOTOR CONTROL CENTER
+
+NPC
+
+NATIONAL PRODUCTIVITY COUNCIL
+
+PA
+
+PUBLIC ANNUNCIATION
+
+PT
+
+POTENTIAL TRANSFORMER
+
+UPS
+
+UNINTERRUPTED POWER SUPPLY
+
+UPVC
+
+UNPLASTICIZED POLYVINYL CHLORIDE
+
+XLPE
+
+CROSS LINKED POLYETHYLENE CABLE
+
+Page 4 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+1 EXECUTIVE SUMMARY
+This Electrical Safety Audit Report presents a comprehensive evaluation of the electrical systems
+and safety measures at Indian Bank, Ernakulam zone –Palarivattom branch. The audit was
+conducted on 19/05/2026 in accordance with NEC-2023 guidelines, CEA Regulations 2023, Indian
+Bank Standards and relevant Indian Standards.
+The audit team has documented all observations related to Electrical safety, which are now
+submitted for review to the management of M/s. Indian Bank- Ernakulam Zone, these findings are
+intended to guide the organization in strengthening its Electrical Safety Framework of the
+Branches and Offsite ATM’s.
+Audit Dates: 19/05/2026
+Location: Palarivattom branch
+Audit Conducted By: M/s. Aura Veritas Engineering and Consultancy Pvt. Ltd.
+1.1 Key Findings:
+The overall electrical infrastructure of the branch was found to be Operational with several areas
+requiring immediate attention and corrective actions to ensure compliance with electrical safety
+standards and to prevent potential hazards.
+1.2 Overall Assessment:
+The electrical systems require Minor to Medium level improvements to meet NEC-2023 Indian
+Bank Standards compliance standards and to ensure safety of personnel, equipment, and
+continuity of banking operations.
+This report details all observations with photographic evidence, technical measurements, and
+prioritized recommendations for corrective actions.
+The audit encompassed a comprehensive evaluation of electrical safety practices, including:
+•
+
+Electrical Maintenance Team One to One Interview during Audit days.
+
+•
+
+Examination of Electrical Equipment at premises.
+
+•
+
+Verification of Electrical Parameters such as Load Measurements, Earthing Measurements,
+Lux levels measurements, Maximum Current ratings verification, Thermography
+measurements at each panel and Distribution boards.
+
+Page 5 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+•
+
+Direct Testing of Fire and Smoke Sensors, Fire Alarm panels in the facility.
+
+•
+
+Validation of Electrical Equipment for critical and risky areas.
+
+•
+
+Assessment of Maintenance Records related to Electrical safety.
+
+•
+
+Inspection of all relevant Electrical Engineering and Maintenance Documents.
+
+•
+
+Evaluation of Compliance with Previous Audit Reports
+
+•
+
+Benchmarking against NEC-2023 Electrical Safety Guidelines and Branch Checklist for the
+Electrical Safety.
+
+2 BASIC TERMINOLOGY
+1. Key Electrical Engineering Terms Everyone Should Know
+Understanding these terms is crucial for anyone working with electrical systems, whether
+you're conducting audits, managing installations, or ensuring safety compliance.
+2. Basic Electrical Quantities
+•
+
+Voltage (V): The electrical potential difference between two points. Measured in volts.
+
+•
+
+Current (I): The flow of electric charge. Measured in amperes (A).
+
+•
+
+Resistance (R): Opposition to current flow. Measured in ohms (Ω).
+
+•
+
+Power (P): The rate at which electrical energy is consumed or generated. Measured in
+watts (W).
+
+•
+
+Energy (E): Total power consumed over time. Measured in kilowatt-hours (kWh).
+
+3. Components & Devices
+•
+
+Circuit Breaker: A safety device that interrupts current flow in case of overload or fault.
+
+•
+
+Transformer: A device that changes voltage levels between circuits.
+
+•
+
+Capacitor: Stores electrical energy temporarily and releases it when needed.
+
+•
+
+Inductor: Stores energy in a magnetic field when current flows through it.
+
+•
+
+Relay: Electrically operated switch used for control and automation.
+
+Page 6 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+4. System Concepts
+•
+
+Single-phase vs. Three-phase: Types of AC power systems; three-phase is more efficient
+for industrial use.
+
+•
+
+Earthing (Grounding): Connecting electrical systems to the earth to prevent shock
+hazards.
+
+•
+
+Load: The amount of electrical power consumed by devices or systems.
+
+•
+
+Short Circuit: An abnormal connection causing excessive current flow, often leading to
+damage or fire.
+
+•
+
+Overload: When a circuit carries more current than it's designed for,
+
+5. Measurement & Safety
+•
+
+Insulation Resistance: Measures the effectiveness of insulation in preventing current
+leakage.
+
+•
+
+Thermography: Infrared imaging used to detect hot spots in electrical systems.
+
+•
+
+Harmonics: Distortions in electrical waveforms that can affect equipment performance.
+
+•
+
+RCD (Residual Current Device): Detects leakage currents and disconnects power to
+prevent electrocution.
+
+•
+
+Lux Level: Measurement of light intensity, relevant in lighting audits.
+
+6. Codes & Standards
+•
+
+IS Codes: Indian Standards for fire safety and protection.
+
+•
+
+NEC-2024 Guidelines
+
+•
+
+BS EN: British/European standards for fire equipment and systems.
+
+Page 7 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+3 TYPES OF ELECTRICAL INJURIES
+
+Page 8 of 30
+
+0
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+4 INTRODUCTION
+Indian Bank is a trusted banking leader with strong national and regional presence, offering
+comprehensive financial services and robust ATM coverage for convenient banking. Branches and
+ATMs in Ernakulam serve local customers with wide-ranging solutions and digital support.
+4.1 AIMS AND OBJECTIVES OF ELECTRICAL SAFETY & ENERGY AUDIT
+•
+
+Verify Electrical Safety of the Indian Bank branches developed/implemented in accordance
+with system safety program plan requirement as per NEC-2023 Guidelines and NBC-2016
+Guidelines.
+
+•
+
+Electrical Audit includes testing and verification of input from Mains, Input and Output of
+UPS, Condition of UPS, AC wiring and functioning of AC units, all wires, fuse carriers, MCBs
+Earth lighting and other circuits, Generator etc. Tests as per the format area are to be
+completed for each branch.
+
+•
+
+Assess effectiveness of the agency’s system Electrical safety systems.
+
+•
+
+Identify potential Safety hazards in the operational system and weaknesses in the
+system safety programs.
+
+•
+
+Verify prior corrective actions are being tracked for closure.
+
+•
+
+Recommend improvements to the system safety program.
+
+•
+
+Provide management with assessment of status and adequacy of system safety
+program.
+
+•
+
+Assure continuing evaluation of safety related issues, awareness and reporting.
+
+Page 9 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+5 SCOPE FOR ELECTRICAL AUDIT AND ENERGY AUDIT
+Electrical Safety Audit Scope in Compliance with NEC-2023 & IS Standards
+1. Standards & Compliance
+•
+
+Conduct audit in accordance with NEC-2023, NBC-2016 relevant Indian Standards
+
+•
+
+Ensure alignment with statutory and regulatory electrical safety norms and BEE Norms.
+
+2. Preventive Maintenance Review
+•
+
+Evaluate the Electrical Preventive Maintenance (EPM) system
+
+•
+
+Check for schedule adherence, documentation, and effectiveness.
+
+3. Incident & Accident Review
+•
+
+Analyse past Electrical accidents and incidents within the facility.
+
+•
+
+Identify root causes and assess corrective/preventive measures taken.
+
+4. Procedure & Documentation Review
+•
+
+Review Electrical Safety System procedures and Energy Management Procedures for
+adequacy and implementation.
+
+•
+
+Examine key documents and Conduct Electrical Safety Tests:
+•
+
+Register of Electrical Installations
+
+•
+
+Test Conducted:
+
+•
+
+▪
+
+Insulation Resistance Test
+
+▪
+
+Earth Resistance Test
+
+▪
+
+LT Panel Equipment Tests
+
+Data Sheets of critical electrical installations
+
+5. Thermography Analysis
+•
+
+Review and Conduct Thermography test results of all electrical installations.
+
+•
+
+Identify hotspots, loose connections, and thermal anomalies.
+
+6. Emergency Power Systems
+•
+
+Assess supply reliability and readiness of emergency systems:
+
+Page 10 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+▪
+
+Uninterruptible Power Supply (UPS)
+
+▪
+
+Battery Backup Systems
+
+Rev. No.
+
+0
+
+7. Report & Recommendations
+•
+
+Compile findings into a comprehensive audit report.
+
+•
+
+Provide actionable recommendations for safety and operational improvements.
+
+6 METHODOLOGY
+The Electrical Safety and Energy Audit include the review of documentation with regard to the
+scope covered in audit, an on-site visit, including Electrical Safety Measures, Energy Saving
+measures, and data collection, their review and analysis. Following methodology in detail:
+
+Page 11 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+7 EARTHING RESISTANCE:
+Earthing resistance is the resistance between the grounding electrode and the surrounding
+soil. It determines how effectively fault currents, lightning surges, or leakage currents are
+dissipated into the earth.
+
+Important for all Applications:
+Safety: Prevents electric shock hazards by directing fault currents safely into the ground.
+Equipment Protection: Reduces the risk of damage to electrical systems during faults or
+lightning strikes.
+Voltage Stabilization: Helps maintain consistent voltage levels across the system.
+Ideal Resistance Values:
+Application
+Power stations & substations
+
+Recommended Resistance
+≤ 1 ohm
+
+Commercial buildings
+Residential systems
+
+≤ 5 ohms
+≤ 10 ohms
+
+NEC standard (if not achievable)
+
+≤ 25 ohms
+
+8 LOAD MEASUREMENT STUDY
+Load Flow Analysis is a computational method used to determine the steady-state operating
+conditions of an electrical power system. It evaluates how electrical power—both real (P) and
+reactive (Q)—flows through the network under specific load conditions.
+Important for all Applications:
+•
+
+Required by NEC 220.87 for determining existing loads before adding new equipment
+
+•
+
+Prevents overloads, phase imbalance, and fire hazards
+
+•
+
+Ensures panel boards and feeders operate within safe limits
+
+•
+
+Identifies peak demand periods and power wastage
+
+•
+
+Supports Power factor correction and efficiency improvements
+Page 12 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+8.1
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+•
+
+Detects the Irregular load distribution, harmonics and voltage drop
+
+•
+
+Avoid Cost retrofits
+
+SITE AUDIT PICTURES
+
+Page 13 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT – PALARIVATTOM
+BRANCH
+AVPL/IBE/25-26/ESEA-05
+
+Document No
+Date of Report Issue
+
+30/05/2026
+
+Rev. No.
+
+0
+
+9 THERMOGRAPHY
+Thermal imaging is a sophisticated and non-invasive technique that utilizes infrared technology
+to detect heat emissions from various objects. It converts infrared energy into a visible light
+display, helping detect abnormal heat patterns caused by overloads or impending equipment
+failures.
+Important for all Applications:
+•
+
+Preventing arc flash, insulation failure, and fire hazard
+
+•
+
+Detecting hot spots in panels, breakers, and busbars
+
+•
+
+Identifying loose connections and phase imbalance
+
+•
+
+Monitoring transformer heating and motor bearings
+
+Page 14 of 38
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+Thermography Hotspots during Site Audit
+Thermal pic
+
+Actual pic
+
+Location
+
+Observation
+
+Fuse
+Hot spot = 39.5 °C
+
+Normal
+
+Normal
+Incoming
+Hot spot= 32.4°C
+
+Page 15 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+Distribution boxes
+
+Normal
+
+Hot spot =33.2 °C
+
+EB meter
+Hot spot = 35.7 °C
+
+Page 16 of 30
+
+Normal
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+9.1
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+SITE AUDIT PICTURES
+
+Page 17 of 30
+
+0
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+10 TOTAL LIGHTING CONNECTED LOAD
+Lighting connected loads refer to the total electrical load attributed to lighting fixtures and
+systems within a facility.
+Checklist during our Inspection:
+•
+
+Verify fixture type and wattage
+
+•
+
+Cross-check with lighting layout drawings
+
+•
+
+Measure actual load using clamp meter
+
+•
+
+Compare with design load and NEC/IS standards
+
+•
+
+Identify retrofit opportunities for energy saving
+
+Lighting Load for M/s. Indian Bank – Ernakulam zone - Palarivattom branch:
+Observation:
+During the Site Audit and Recording the Actual Loads at all Rooms, we are Satisfactory with the
+Results obtained from the Clamp meter and Engineering Predictions. We also found that majority
+of the Lighting Loads found Acceptable.
+Opportunity for Improvement:
+Based on the Site Audit findings and anomalies found during the normal operation please follow
+the below basic steps to increase the Efficiency of the Equipment and Proper Load distribution
+across all Common rooms.
+• Old lights are to be are to be replaced with Energy efficient Lights to minimize the Load during
+Peak hours.
+Table 1: Phase load
+R (kW)
+
+Y (kW)
+
+B (kW)
+
+4.004
+
+0.0638
+
+0.363
+
+Whether load is balanced or unbalanced?
+
+:
+
+YES
+
+If load is unbalanced, any rectification to be done?
+
+:
+
+Load unbalance observed
+
+Page 18 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+Table 2: Number of electrical items at premises
+Rooms
+
+Tube
+light
+
+Fan (wall)
+
+Light 1
+5
+3
+
+Banking hall
+Customer’s hall
+
+5
+
+3
+2
+
+Strong room
+Manager’s Cabin
+Server room
+Staff room
+Canteen
+Stationery room
+
+5
+
+2
+
+Toilets
+UPS room
+ATM
+Total
+
+3
+
+1
+1
+
+1
+
+Light 2
+
+2
+2
+2
+
+PC
+
+Printer
+
+5
+
+4
+
+Cash
+Counting
+machine
+2
+
+AC
+
+Exhaust
+fan
+
+UPS
+
+1
+2
+
+1
+1
+
+2
+
+14
+
+1
+10
+
+8
+
+1
+7
+
+6
+
+4
+
+2
+
+2
+6
+
+2
+
+2
+1
+3
+
+Table 3: Total electrical load (in kW) at premises
+
+Rooms
+
+Tube
+light
+
+Fan
+
+Light 1
+
+Light
+2
+
+PC
+
+Printe
+r
+
+Cash
+Countin
+g
+machin
+e
+
+Power per item
+(W)
+
+24
+
+70
+
+35
+
+18
+
+250
+
+250
+
+75
+
+-
+
+46
+
+300
+0
+
+Banking hall
+
+120
+
+210
+
+175
+
+0
+
+1000
+
+150
+
+4000
+
+0
+
+0
+
+Customer’s hall
+Strong room
+Manager’s Cabin
+Server room
+
+0
+120
+0
+0
+
+140
+140
+0
+0
+
+105
+0
+35
+0
+
+0
+0
+36
+36
+
+125
+0
+0
+0
+250
+0
+
+0
+0
+0
+0
+
+0
+0
+0
+0
+
+2722
+0
+0
+1361
+
+0
+0
+0
+0
+
+0
+0
+0
+0
+
+Staff room
+Canteen
+Stationery room
+Toilets
+
+24
+0
+0
+72
+
+70
+0
+0
+0
+
+0
+0
+0
+0
+
+36
+0
+0
+0
+
+0
+0
+0
+0
+
+0
+0
+0
+0
+
+0
+0
+0
+0
+
+0
+0
+0
+0
+
+0
+0
+0
+92
+
+UPS room
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+ATM
+
+0
+
+0
+
+35
+
+18
+
+0
+
+0
+
+0
+
+2722
+
+0
+
+Total item wise
+
+336
+
+560
+
+350
+
+126
+
+150
+0
+
+1000
+
+150
+
+1080
+5
+
+92
+
+0
+0
+0
+0
+600
+0
+100
+0
+700
+0
+
+Total power consumption in the premises in
+kW
+
+21.919
+
+Page 19 of 30
+
+AC
+
+Exhaus
+t fan
+
+UPS
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+11 CONCLUSION
+Based on the Site findings, technical document verification, Validation of test reports, Our Site
+Testing (Earth Resistance, Thermography, Load Imbalance Study assessment, Lightning Load
+Assessment, Lux Study Assessment) we found the below mentioned recommendations are to be
+taken care in order to maintain the NEC-2023 Guidelines, BEE Standards and Electrical Equipment
+& Personnel Safety. Final conclusions/recommendations are listed in Appendix 1.
+S
+No.
+
+Risk
+
+Audit
+
+Detailed Scope of Work for Rectifying the
+
+Observations/Shortcomings
+
+Observations/Shortcomings
+Common Neutral Line Cable Temperature is
+High is due to Harmonic currents raised due to
+Variable loads such as Computers, Air
+Conditioners etc, In order to avoid this
+scenario we recommend to reduce the R-Phase
+load and Re-distribute to other Phases,
+
+1.
+
+Medium Un balanced load
+
+Especially Group all Non-Linear Loads and
+supply them via separate Busbars, In case the
+Problem persists after lining all Non-Linear
+loads, change the Neutral Cable Size to the
+Next Cross sectional size to handle the
+Additional Non-Linear Current and Heat
+dissipation.
+
+2.
+
+Medium Earth Pit maintenance
+
+It is recommended to conduct a thorough
+inspection of earth electrodes and connections
+to check for rust, corrosion, or physical
+damage. Engage a certified third-party
+consultant to measure the earth resistance
+using a calibrated earth tester, ensuring that
+all readings comply with standard safety
+requirements.
+
+Page 20 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+S
+No.
+
+Risk
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+Audit
+
+Detailed Scope of Work for Rectifying the
+
+Observations/Shortcomings
+
+Observations/Shortcomings
+
+3.
+
+Low
+
+UPS output connection
+
+UPS connection split up loads to be properly
+maintained as per emergency load distribution
+matrix
+
+4.
+
+Low
+
+UPS Battery
+
+UPS battery required scheduled maintenance.
+
+Page 21 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+APPENDIX 1 – ELECTRICAL SAFETY AND ENERGY AUDIT REPORT CHECKLIST
+
+Page 22 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT -CHECKLIST
+BRANCH DETAILS
+S.
+No.
+
+Description
+
+Details
+
+1
+
+Zone Name
+
+Ernakulam
+
+2
+
+Branch Name & Branch Code
+
+3
+
+Address
+
+4
+
+Sanctioned load
+
+Palarivattom branch,
+30/2335 B & B1, V E arcade, Opp. Vyapar Mandir,
+Palarivattom, Ernakulam District-682025
+24 kW
+
+5
+
+Connected Load
+
+23.36 kW
+
+6
+
+Monthly Electricity bill
+(Appx)
+
+INR 20,000/- Approx
+
+7
+
+Total tonnage of Air
+conditioner load
+
+10 Tons
+
+8
+
+Audit Date
+
+19/05/2026
+
+ELECTRICAL ENERGY AUDIT
+S.
+No.
+
+Description
+
+Quantity
+
+1
+
+Type of Electrical Fittings installed and its
+
+NIL
+
+2
+
+No of Ceiling Fan installed and its power
+consumption.
+
+7 and 490W
+
+3
+
+No. of Wall Fan installed and its power
+consumption
+
+2 and 140W
+
+4
+
+No of Air-conditioners and its capacity and
+power consumption of each.
+
+6 nos. 10 tons
+and 10.8 kW
+
+5
+
+No of computer installed and its power
+consumption
+
+06 and 1500 W
+
+6
+
+UPS installed and its capacity
+
+7
+
+Any other gadgets installed and its power
+consumption.
+
+8
+
+Verification of electricity Bill for last 12 months
+and observation if any
+
+9
+
+Leakage if any in the wiring system
+
+7 (3+3+1) KVA
+& 3 (1+1+1)
+nos
+
+Page 23 of 30
+
+Found fine
+NIL
+
+Recommendation
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+INSPECTION DETAILS
+S.No.
+1.
+
+2.
+
+Description
+Condition of Main Distribution Board / Sub Distribution
+Board.
+Cables & wires used in the installation to be checked for
+required insulation and current carrying capacity.
+Condition of wiring with specific remark
+
+Site Observation
+Good
+
+Good
+
+Note: Bunching of wires to be avoided & Proper clamping of
+conduits with wires to be done in the wall.
+3.
+
+Loose connection & hanging wires
+
+4.
+
+Heavy duty contact points to be checked for the firm
+connection to avoid overheating and minimize power loss
+
+No hanging wires
+Checked and
+appears well
+
+Condition of fuses/main switches
+5.
+
+6.
+
+Note: If branches are provided with old switches and
+boards it can be replaced with MCBs and distributions
+boards of suitable capacity
+Whether any single plug point used for various power
+applications by means of any extension board
+
+Up to the Standards
+
+No extension board
+utilized
+
+Note: for avoiding overloading of circuits
+Non provision of MCB / Circuit
+Breakers of adequate capacity.
+7.
+
+YES
+Note: Incoming and individual outgoing MCBs/switched to
+be rated with proper capacity
+
+8.
+
+Condition of neutral wire / earthing
+Note: check for any loose connection
+
+9.
+
+Details of connected load
+
+25 kW
+23.36 kW
+
+10.
+
+Sanctioned Load (By State Electricity Board) (in KW)
+Present Load (in KW) If the available Load is more than the
+sanctioned load then the additional equipment which are
+connected are to be ensured that the wiring / switches /
+MCBs provided is capable of withstanding additional load.
+This is the root cause of fire accidents.
+
+11.
+
+Power Consumption in excess of the sanctioned load.
+
+12.
+
+Check for availability of measuring instruments in the
+Control Panel viz. Voltmeter, Ammeter, Frequency Meter,
+Page 24 of 30
+
+Good condition
+
+No energy meter
+Only EB Meter No
+Energy Meter
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+S.No.
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+Description
+
+Site Observation
+
+Power Factor Meter, Energy Meter for its calibration to
+measure electricity.
+
+13.
+
+Earthing:
+(a) UPS Earthing – Value in ohms.
+(b) Raw power Earthing – Value in ohms.
+(c) No of earth pits
+Note: UPS and raw power should have separate earthing
+
+14.
+
+Total UPS Load:
+(a) Total no of UPS with capacity
+(b) UPS panel wiring
+(c) Whether alternate Nodes are
+connected to one UPS.
+(d) Is UPS under AMC with OEM or not?
+(e) Is UPS load balanced?
+Mention current in all the three phases
+Note: If UPS load is imbalanced, the loads to be balanced in
+all the three phases
+
+15.
+
+16.
+
+17.
+
+UPS Batteries:
+(a) No of Batteries
+(b) Periodicity of servicing
+(c) Proper ventilation / exhaust fan provided
+Air-conditioner:
+(a) No. of Air conditioners working round the clock with
+Tonnage.
+(b) Whether separate stabilizer provided for each AC unit.
+(c) Any timer fixed to the AC units for alternate
+functioning.
+(d) Check whether supply for ACs is drawn through power
+points.
+(e) Date of last servicing carried out.
+(f) Eligible life span of ACs.
+(g) Whether Outdoor units are earthed?
+(h) Whether AC's are covered in AMCs? If Yes, what is the
+frequency of Preventive Maintenance in a year?
+Note: Periodic cleaning of AC filters is mandatory.
+Any Generator provided.
+
+(a) 0.32 volts
+(b) Above 50 ohms
+(2.35 volts)
+(c) not identified
+(a) 7 (3+3+1) KVA –
+3 (1+1+1) nos
+(b) Good
+(c) No
+(d)YES
+(e) Singe phase UPS
+
+(a) 19 no’s (16+3)
+(b) OEM
+recommended
+(c) YES
+(a) 5 (4 Tons = 1, 2
+Tons = 1, 1 ton = 3)
+(b) YES
+(c) NO
+(d) YES
+(e) Bill not
+available.
+(f) –
+(g) Not Identified
+(h) YES, But bill not
+provided
+
+No Separate DG for
+Bank.
+
+Page 25 of 30
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+SAFETY QUESTIONNAIRE
+S.NO.
+
+DESCRIPTION
+
+DETAILS
+
+1
+
+Whether TPN Isolators / MCCBs / ELCBs /
+are provided to cater the load
+
+☒YES / ☐NO
+
+2
+
+Whether lights and emergency lights are
+provided in electrical room / operating
+areas for easy operation & maintenance
+works
+
+☒YES / ☐NO
+
+3
+
+Whether pump room, dg set room, ups
+room, ac plant room, electrical panel room
+are maintained in dry and in good
+condition and obsolete / hazardous / old
+items are not dumped there.
+
+☐YES / ☒NO
+
+4
+
+Whether water seepage is observed near
+any of the electrical panel, distribution
+board, electrical equipment, etc
+
+☐YES / ☒NO
+
+5
+
+whether earthing pits are provided and
+connected to equipment and the body of
+equipment
+
+☒YES / ☐NO
+
+6
+
+Whether earthing pits are maintained
+properly
+
+☐YES / ☒NO
+
+7
+
+Whether exhaust fans for ventilation of
+panel room / electrical room / UPS room /
+DG set room is provided and no paper, old
+material or any other scrap is kept near DB
+/ panels / ups / batteries etc.
+
+☒YES / ☐NO
+
+8
+
+Whether penalty is being imposed in
+electricity bill on account of higher load /
+poor power factor / poor load factor etc
+(ascertained from the electricity bills of
+april/may/june/july) additional electrical
+load required (if any)
+
+9
+
+Whether load is distributed in all three
+phases to avoid any unbalancing of phase
+load and no loose electrical connections /
+Page 26 of 30
+
+☐YES / ☒NO
+
+☐YES / ☒NO
+
+REMARKS
+
+Earth pit to be
+maintained properly
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+S.NO.
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+DESCRIPTION
+haphazrad wirings observed
+building / office premises.
+
+DETAILS
+in
+
+0
+
+REMARKS
+
+the
+
+10
+
+Whether isolating switches are provided
+for switching off of the non essential loads
+in premises during night and main switch
+to switch off the power supply to the
+building / floor in case of fire / emergency.
+
+☒YES / ☐NO
+
+11
+
+Whether proper preventive maintenance
+after opening of the electrical boards and
+distribution boards are carried out by the
+license holder electrician or skilled
+technicians of equipment manufacturer /
+service providers.
+
+☒YES / ☐NO
+
+12
+
+Whether appropriate timers used in the
+changeover of air conditioners for server
+room ACs and for signage boards to make
+auto on / off (for schedule timings). the
+thermostat of the ACs at server room
+should be set to say 26°c, so that it will run
+only when the temperature is too high (to
+minimize chances of fire due to idle
+running of the ACs during night)
+
+☐YES / ☒NO
+
+13
+
+Whether preventive maintenance of the
+electric installation and equipment is
+carried out by skilled license holder
+electricians / skilled technicians
+
+☒YES / ☐NO
+
+14
+
+General condition of electrical control
+panels, main switch, electric meter board,
+change over switch, AC, water coolers,
+water filters, wiring cables etc are in good
+conditions and DBs, panels, switch boards
+are properly covered
+
+☒YES / ☐NO
+
+15
+
+Whether electrical safety equipments of
+pantry etc are properly connected to
+industrial socket box with MCBs or latest
+type switches are provided to switch on /
+off the ACs to protect them from overload.
+
+☒YES / ☐NO
+
+Page 27 of 30
+
+Main LDB available
+
+One AC not
+condition
+
+working
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+S.NO.
+
+DESCRIPTION
+
+DETAILS
+
+16
+
+Whether the contact number of persons,
+electricians, power distribution company,
+generator service provider, ups vendors,
+ACs etc are available with security guards
+and other staff are displayed in electric /
+UPS / server room.
+
+☐YES / ☒NO
+
+17
+
+Whether power factor correction panel of
+appropriate rating is installed.
+
+☒YES / ☐NO
+
+18
+
+Whether all the connecting point at various
+DBs and panels are properly insulated and
+proper indicative marking are done at the
+respective panel / DB
+
+☐YES / ☒NO
+
+19
+
+Whether the internal insulation of the wire
+have been accounted for checking the
+durability of electrical connection
+
+☐YES / ☒NO
+
+20
+
+All old disposable records, broken
+furniture etc accumulated in the premises
+have been cleared.
+
+☐YES / ☒NO
+
+21
+
+Combustible leaf litter / waste papers etc
+in and around the branch are removed /
+cleaned periodically
+
+☒YES / ☐NO
+
+22
+
+No stationary / records / old obsolete
+items are stored / kept in the server / UPS
+/ electric room
+
+☒YES / ☐NO
+
+23
+
+Storage racks in stationary / record room
+kept at a safe distance of at least 2m from
+electrical points / switch / junction boxes
+
+☒YES / ☐NO
+
+24
+
+Whether in the pantry / canteen, LPG is
+used
+
+☐YES / ☒NO
+
+25
+
+Are the fire extinguishers available in the
+following work area and clearly marked
+and accessible:
+1.Server / ups room: CO2 type x 2
+
+☒YES / ☐NO
+
+Page 28 of 30
+
+0
+
+REMARKS
+
+Insulation
+and
+maintenance
+not
+provided and performed
+in end terminal panel
+
+Kept in store room
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+S.NO.
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+DESCRIPTION
+
+0
+
+DETAILS
+
+REMARKS
+
+2.Individual department of the premises:
+CO2 type x 1
+3. Stationary room: CO2 type x 1
+4. Electric room / ac plant room: CO2 type
+x2
+5. DG set/generator: 6kg ABC capacity x 2
+26
+
+Whether server room have dual ac units
+with timer circuit device on independent
+
+☐YES / ☒NO
+
+27
+
+Whether exhaust fans are installed in UPS
+room
+
+☒YES / ☐NO
+
+28
+
+Whether proper insulation at the batteries
+have been provided
+
+☒YES / ☐NO
+
+Batteries need
+maintained
+
+to
+
+be
+
+UPS DETAILS
+Parameters Checked
+
+Readings
+Recorded at
+UPS 1
+
+Readings
+Recorded at
+UPS 2
+
+Readings
+Recorded at
+UPS 3 (ATM)
+
+Normal
+Range
+
+Voltage at Input of UPS
+(V) (Vac)
+
+251
+
+244
+
+230
+
+230 +/10%
+
+Voltage at Output of UPS
+(V) (Vac)
+
+230
+
+230
+
+230
+
+230 +/10%
+
+Load on UPS (KVA)
+Numeric
+
+3
+
+3
+
+1
+
+-
+
+Frequency of Supply
+(Hz) at O/P of UPS
+
+50
+
+50
+
+50
+
+50 +/5%
+
+Battery Voltage (V)
+
+108
+
+108
+
+40.5
+
+-
+
+Battery Rating Type
+Total Battery
+
+12V / 100AH
+
+12V / 100AH
+
+16 nos
+
+3 nos
+
+Page 29 of 30
+
+Remarks
+
+ELECTRICAL SAFETY AND ENERGY AUDIT REPORT –
+PALARIVATTOM BRANCH
+Document No
+Date of Report
+Issue
+
+AVPL/IBE/25-26/ESEA-05
+
+30/05/2026
+
+Rev. No.
+
+0
+
+AUDIT OBSERVATIONS/SHORTCOMINGS
+S
+No.
+
+Risk
+
+Audit
+
+Detailed Scope of Work for Rectifying the
+
+Observations/Shortcomings
+
+Observations/Shortcomings
+Common Neutral Line Cable Temperature is
+High is due to Harmonic currents raised due to
+Variable loads such as Computers, Air
+Conditioners etc, In order to avoid this
+scenario we recommend to reduce the R-Phase
+load and Re-distribute to other Phases,
+
+5.
+
+Medium Un balanced load
+
+Especially Group all Non-Linear Loads and
+supply them via separate Busbars, In case the
+Problem persists after lining all Non-Linear
+loads, change the Neutral Cable Size to the
+Next Cross sectional size to handle the
+Additional Non-Linear Current and Heat
+dissipation.
+
+6.
+
+Medium Earth Pit maintenance
+
+It is recommended to conduct a thorough
+inspection of earth electrodes and connections
+to check for rust, corrosion, or physical
+damage. Engage a certified third-party
+consultant to measure the earth resistance
+using a calibrated earth tester, ensuring that
+all readings comply with standard safety
+requirements.
+
+7.
+
+Low
+
+UPS output connection
+
+UPS connection split up loads to be properly
+maintained as per emergency load distribution
+matrix
+
+8.
+
+Low
+
+UPS Battery
+
+UPS battery required scheduled maintenance.
+
+Page 30 of 30
+
+

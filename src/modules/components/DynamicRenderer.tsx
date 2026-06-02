@@ -11,7 +11,7 @@ import { LOOKUP_CLIENTS } from '@/lib/lookupData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, CheckCircle, ArrowLeft, Layers, ShieldAlert, Award } from 'lucide-react';
+import { Save, CheckCircle, ArrowLeft, Layers, ShieldAlert, Award, XCircle, AlertCircle } from 'lucide-react';
 import { DynamicDropdowns } from './DynamicDropdowns';
 import { SignaturePad } from './SignaturePad';
 import { TableGrid } from './TableGrid';
@@ -370,6 +370,7 @@ export function DynamicRenderer({
                                   base64Data: b64
                                 }))}
                                 readOnly={readOnly}
+                                sectionTitle={comp.title}
                                 onResponseChange={(updates) => {
                                   const currentAnswers = resp.checklistAnswers ? [...resp.checklistAnswers] : [];
                                   const idx = currentAnswers.findIndex(a => a.itemId === item.id);
@@ -400,42 +401,43 @@ export function DynamicRenderer({
 
                   case 'yes_no_na':
                     return (
-                      <div key={comp.id} className="p-4 rounded-xl border border-border/80 bg-card/20 text-left space-y-3">
+                      <div key={comp.id} className="p-4 rounded-xl border border-border bg-card text-left space-y-3">
                         <label className="text-xs font-semibold text-foreground flex items-center">
                           {comp.title} {comp.required && <span className="text-red-400 ml-1">*</span>}
                         </label>
                         <div className="flex space-x-2">
-                          {(['YES', 'NO', 'N/A'] as const).map((opt) => {
-                            const isSelected = resp.yesNoNa === opt;
-                            const btnLabels = comp.labels || { yes: 'YES', no: 'NO', na: 'N/A' };
-                            const labelText = opt === 'YES' ? btnLabels.yes : opt === 'NO' ? btnLabels.no : btnLabels.na;
-
+                          {([
+                            { key: 'YES', label: comp.labels?.yes || 'Compliant', icon: <CheckCircle className="w-3.5 h-3.5 mr-1.5" />, activeColor: '#3BB885', activeBg: '#D4F2E8' },
+                            { key: 'NO', label: comp.labels?.no || 'Not Compliant', icon: <XCircle className="w-3.5 h-3.5 mr-1.5" />, activeColor: '#E8524A', activeBg: '#FCE4E4' },
+                            { key: 'N/A', label: comp.labels?.na || 'N/A', icon: <AlertCircle className="w-3.5 h-3.5 mr-1.5" />, activeColor: '#627384', activeBg: '#EEF1F4' }
+                          ] as const).map((opt) => {
+                            const isSelected = resp.yesNoNa === opt.key;
                             return (
-                              <Button
-                                key={opt}
+                              <button
+                                key={opt.key}
                                 type="button"
                                 disabled={readOnly}
-                                size="xs"
-                                variant={isSelected ? 'default' : 'outline'}
                                 onClick={() => {
-                                  const recommendation = opt === 'NO' ? (comp.recoMapping?.no || 'Remediation required.') : '';
+                                  const recommendation = opt.key === 'NO' ? (comp.recoMapping?.no || 'Remediation required.') : '';
                                   updateResponse(comp.id, { 
-                                    yesNoNa: opt,
-                                    value: opt,
+                                    yesNoNa: opt.key,
+                                    value: opt.key,
                                     observationAnswer: {
-                                      answer: labelText,
+                                      answer: opt.label,
                                       recommendation
                                     }
                                   });
                                 }}
-                                className={`h-8 px-4 text-xs font-semibold ${
-                                  isSelected && opt === 'YES' ? 'bg-green-600 hover:bg-green-700 text-white' :
-                                  isSelected && opt === 'NO' ? 'bg-red-600 hover:bg-red-700 text-white' :
-                                  isSelected && opt === 'N/A' ? 'bg-zinc-500 hover:bg-zinc-600 text-white' : ''
-                                }`}
+                                style={{
+                                  color: isSelected ? opt.activeColor : '#8898A8',
+                                  backgroundColor: isSelected ? opt.activeBg : '#F8FAFB',
+                                  border: isSelected ? `1.5px solid ${opt.activeColor}` : '1.5px solid transparent'
+                                }}
+                                className="h-9 px-4 rounded-lg text-xs font-semibold flex items-center transition-all duration-150 active:scale-97 select-none"
                               >
-                                {labelText}
-                              </Button>
+                                {opt.icon}
+                                {opt.label}
+                              </button>
                             );
                           })}
                         </div>
