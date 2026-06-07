@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
         name: user.name,
         role: user.role.name,
         permissions: user.role.permissions.map((p) => p.action),
+        organizationId: user.organizationId,
         organization: user.organization,
       },
     });

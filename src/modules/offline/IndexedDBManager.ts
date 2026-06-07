@@ -81,6 +81,17 @@ export const IndexedDBManager = {
     await db.delete('sessions', id);
   },
 
+  async pruneSessions(keepIds: Set<string>): Promise<void> {
+    const db = await getDB();
+    if (!db) return;
+    const all = await db.getAll('sessions');
+    for (const session of all) {
+      if (!keepIds.has(session.id)) {
+        await db.delete('sessions', session.id);
+      }
+    }
+  },
+
   // --- Sync Queue Store ---
   async addToSyncQueue(payload: {
     type: 'save_session' | 'publish_template' | 'publish_report_layout' | 'delete_report_layout';

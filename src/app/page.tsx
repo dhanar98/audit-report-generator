@@ -45,6 +45,7 @@ import {
   downloadXlsx,
   parseSpreadsheetRows,
 } from '@/lib/importTemplates';
+import { withSyncContext } from '@/lib/userOrg';
 
 type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report' | 'clients' | 'auditors' | 'report_builder';
 
@@ -348,6 +349,7 @@ export default function HomePage() {
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const syncInProgressRef = useRef(false);
+  const pullInProgressRef = useRef(false);
   const syncBackoffUntilRef = useRef(0);
   const lastSyncErrorRef = useRef('');
 
@@ -453,7 +455,9 @@ export default function HomePage() {
 
   // Pull templates, report layouts, and audit sessions from live DB → merge into IndexedDB
   const pullAndMergeFromServer = async () => {
-    if (!navigator.onLine || !currentUser || syncInProgressRef.current) return;
+    if (!navigator.onLine || !currentUser || pullInProgressRef.current) return;
+
+    pullInProgressRef.current = true;
     try {
       const queue = await IndexedDBManager.getSyncQueue();
       const pendingIds = new Set(queue.map((q: any) => q.data?.id).filter(Boolean));
@@ -471,18 +475,26 @@ export default function HomePage() {
         }
       }
 
+      const serverSessionIds = new Set<string>();
       const sessionsRes = await fetch('/api/sessions');
       if (sessionsRes.ok) {
         const serverSessions: AuditSessionData[] = await sessionsRes.json();
         for (const session of serverSessions) {
+          serverSessionIds.add(session.id);
           if (pendingIds.has(session.id)) continue;
           await IndexedDBManager.saveSession(session);
         }
+
+        // Drop stale local-only sessions when online; keep outbound sync queue items
+        const keepSessionIds = new Set([...serverSessionIds, ...pendingIds]);
+        await IndexedDBManager.pruneSessions(keepSessionIds);
       }
 
       await reloadLocalData();
     } catch {
       /* offline or server unavailable */
+    } finally {
+      pullInProgressRef.current = false;
     }
   };
 
@@ -497,13 +509,25 @@ export default function HomePage() {
     setSyncPendingCount(queue.length);
   };
 
-  // Load local data and merge from server when authenticated + online
+  // When online, pull server data first; when offline, read IndexedDB cache
   useEffect(() => {
-    if (!mounted) return;
-    reloadLocalData();
-    if (currentUser && isOnline) {
+    if (!mounted || !currentUser) return;
+    if (isOnline) {
       pullAndMergeFromServer();
+    } else {
+      reloadLocalData();
     }
+  }, [mounted, currentUser, isOnline]);
+
+  // Periodically refresh from server while online
+  useEffect(() => {
+    if (!mounted || !currentUser || !isOnline) return;
+
+    const interval = setInterval(() => {
+      pullAndMergeFromServer();
+    }, 30_000);
+
+    return () => clearInterval(interval);
   }, [mounted, currentUser, isOnline]);
 
   // Listen to cross-tab updates via BroadcastChannel
@@ -876,10 +900,6 @@ export default function HomePage() {
         break;
       }
 
-      if (syncedAny) {
-        await pullAndMergeFromServer();
-      }
-
       const remaining = await IndexedDBManager.getSyncQueue();
       setSyncPendingCount(remaining.length);
     } catch (err: any) {
@@ -888,6 +908,9 @@ export default function HomePage() {
       setSyncPendingCount(remaining.length);
     } finally {
       syncInProgressRef.current = false;
+      if (currentUser) {
+        pullAndMergeFromServer();
+      }
     }
   };
 
@@ -1168,10 +1191,7 @@ export default function HomePage() {
     // Queue offline sync
     await IndexedDBManager.addToSyncQueue({
       type: 'save_session',
-      data: {
-        ...sessionWithUser,
-        organizationId: currentUser?.organizationId,
-      },
+      data: withSyncContext(sessionWithUser, currentUser),
     });
     triggerSync();
     syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
@@ -1203,10 +1223,7 @@ export default function HomePage() {
     // Queue offline sync
     await IndexedDBManager.addToSyncQueue({
       type: 'save_session',
-      data: {
-        ...sessionWithUser,
-        organizationId: currentUser?.organizationId,
-      },
+      data: withSyncContext(sessionWithUser, currentUser),
     });
     triggerSync();
     syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });

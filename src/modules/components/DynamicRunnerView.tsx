@@ -4,6 +4,7 @@ import { DynamicRenderer } from './DynamicRenderer';
 import { COMPREHENSIVE_DYNAMIC_SCHEMA } from '@/utils/dynamicAuditMock';
 import { DynamicChecklistSchema, DynamicAuditSession } from '@/types/dynamicSchema';
 import { IndexedDBManager } from '@/modules/offline/IndexedDBManager';
+import { withSyncContext } from '@/lib/userOrg';
 
 interface DynamicRunnerViewProps {
   schema: DynamicChecklistSchema;
@@ -72,7 +73,7 @@ export function DynamicRunnerView({ schema, initialSession, onBack }: DynamicRun
       // Queue offline sync
       await IndexedDBManager.addToSyncQueue({
         type: 'save_session',
-        data: updatedSession
+        data: withSyncContext(updatedSession, null),
       });
       syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
       if (!silent) {
@@ -97,7 +98,7 @@ export function DynamicRunnerView({ schema, initialSession, onBack }: DynamicRun
       // Queue offline sync
       await IndexedDBManager.addToSyncQueue({
         type: 'save_session',
-        data: updated
+        data: withSyncContext(updated, null),
       });
       syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
       alert('Audit successfully completed!');
