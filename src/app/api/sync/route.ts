@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Organization, Role } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
 const LONG_TX_OPTIONS = { maxWait: 60_000, timeout: 120_000 };
 
-let cachedOrgRole: {
-  defaultOrg: Awaited<ReturnType<typeof prisma.organization.findFirst>>;
-  defaultRole: Awaited<ReturnType<typeof prisma.role.findUnique>>;
-} | null = null;
+type OrgRolePair = {
+  defaultOrg: Organization;
+  defaultRole: Role;
+};
+
+let cachedOrgRole: OrgRolePair | null = null;
 
 function isDbConnectivityError(err: any): boolean {
   const message = err?.message || '';
