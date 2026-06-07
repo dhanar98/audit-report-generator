@@ -405,9 +405,28 @@ export default function HomePage() {
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
 
-    // Register Service Worker in production only
+    // Register Service Worker in production only; always check for updates.
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
+      let refreshing = false;
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
+      navigator.serviceWorker
+        .register('/sw.js', { updateViaCache: 'none' })
+        .then((registration) => {
+          registration.update();
+
+          const updateInterval = setInterval(() => {
+            registration.update();
+          }, 60_000);
+
+          window.addEventListener('beforeunload', () => clearInterval(updateInterval));
+        })
+        .catch(console.error);
     }
 
     // Restore user from localStorage immediately — eliminates the auth-loading flash
