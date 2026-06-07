@@ -49,7 +49,7 @@ interface ChecklistBuilderProps {
 }
 
 export function ChecklistBuilder({ initialSchema, onPublish, onSaveDraft }: ChecklistBuilderProps) {
-  const isV2 = false; // V1 is the single active report template system
+  const isV2 = 'components' in initialSchema || ('version' in initialSchema && (initialSchema as any).version === 2);
 
   // States
   const [schemaV1, setSchemaV1] = useState<ChecklistSchema>(!isV2 ? (initialSchema as ChecklistSchema) : {} as any);

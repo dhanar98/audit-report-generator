@@ -20,6 +20,14 @@ Handlebars.registerHelper('getGridCellValue', function (resp: DynamicComponentRe
   return resp?.tableRows?.find(c => c.rowId === rowId && c.colId === colId)?.value || '';
 });
 
+Handlebars.registerHelper('inc', function (val) {
+  return parseInt(val) + 1;
+});
+
+Handlebars.registerHelper('isSafety', function (title) {
+  return typeof title === 'string' && (title.toUpperCase().includes('SAFETY') || title.toUpperCase().includes('QUESTIONNAIRE'));
+});
+
 // A4 Optimized PDF Handlebars Layout
 const PDF_TEMPLATE = `
 <!DOCTYPE html>
@@ -133,13 +141,39 @@ const PDF_TEMPLATE = `
     
     /* Generic elements */
     .rich-content {
-      padding: 12px;
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
+      padding: 0;
+      background-color: transparent;
+      border: none;
       margin-bottom: 15px;
       color: #334155;
       font-size: 10px;
+    }
+    .rich-content h1, .rich-content h2, .rich-content h3, .rich-content h4 {
+      color: #1e3a8a;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .rich-content h1 { font-size: 14px; }
+    .rich-content h2 { font-size: 12px; }
+    .rich-content h3 { font-size: 11px; }
+    .rich-content h4 { font-size: 10.5px; }
+    .rich-content p {
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .rich-content ul, .rich-content ol {
+      margin-bottom: 6px;
+      padding-left: 18px;
+    }
+    .rich-content li {
+      margin-bottom: 3px;
+    }
+    .rich-content img {
+      max-width: 100%;
+      height: auto;
+      margin: 8px 0;
+      border-radius: 4px;
     }
     .badge {
       font-size: 9px;
@@ -351,28 +385,55 @@ const PDF_TEMPLATE = `
 
     {{#if (eq type 'checklist')}}
       {{#with (getAnswer ../session.responses id) as |resp|}}
-        <table class="checklist-table">
-          <thead>
-            <tr>
-              <th style="width: 75%;">Checklist Question / Compliance Checkpoint</th>
-              <th style="width: 12%; text-align: center;">Status</th>
-              <th style="width: 13%; text-align: center;">Risk Level</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each ../items}}
-              {{#with (getChecklistItemAnswer resp id) as |ans|}}
-                <tr>
-                  <td>{{question}}</td>
-                  <td class="status-cell" style="color: {{#if (eq value 'YES')}}#10b981{{else}}{{#if (eq value 'NO')}}#ef4444{{else}}#64748b{{/if}}{{/if}};">
-                    {{#if value}}{{value}}{{else}}-{{/if}}
-                  </td>
-                  <td style="text-align: center; font-weight: bold;">{{riskLevel}}</td>
-                </tr>
-              {{/with}}
-            {{/each}}
-          </tbody>
-        </table>
+        {{#if (isSafety ../title)}}
+          <table class="checklist-table">
+            <thead>
+              <tr>
+                <th style="width: 8%; text-align: center;">S.NO.</th>
+                <th style="width: 52%;">DESCRIPTION</th>
+                <th style="width: 20%; text-align: center;">DETAILS</th>
+                <th style="width: 20%;">REMARKS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each ../items}}
+                {{#with (getChecklistItemAnswer resp id) as |ans|}}
+                  <tr>
+                    <td style="text-align: center;">{{inc @index}}</td>
+                    <td>{{question}}</td>
+                    <td style="text-align: center; font-weight: bold; font-family: monospace; white-space: nowrap; font-size: 9.5px;">
+                      {{#if (eq value 'YES')}}☒YES / ☐NO{{else}}{{#if (eq value 'NO')}}☐YES / ☒NO{{else}}☐YES / ☐NO{{/if}}{{/if}}
+                    </td>
+                    <td>{{#if remarks}}{{remarks}}{{else}}{{/if}}</td>
+                  </tr>
+                {{/with}}
+              {{/each}}
+            </tbody>
+          </table>
+        {{else}}
+          <table class="checklist-table">
+            <thead>
+              <tr>
+                <th style="width: 75%;">Checklist Question / Compliance Checkpoint</th>
+                <th style="width: 12%; text-align: center;">Status</th>
+                <th style="width: 13%; text-align: center;">Risk Level</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each ../items}}
+                {{#with (getChecklistItemAnswer resp id) as |ans|}}
+                  <tr>
+                    <td>{{question}}</td>
+                    <td class="status-cell" style="color: {{#if (eq value 'YES')}}#10b981{{else}}{{#if (eq value 'NO')}}#ef4444{{else}}#64748b{{/if}}{{/if}};">
+                      {{#if value}}{{value}}{{else}}-{{/if}}
+                    </td>
+                    <td style="text-align: center; font-weight: bold;">{{riskLevel}}</td>
+                  </tr>
+                {{/with}}
+              {{/each}}
+            </tbody>
+          </table>
+        {{/if}}
 
         <!-- Render non-compliant details below the table -->
         {{#each ../items}}

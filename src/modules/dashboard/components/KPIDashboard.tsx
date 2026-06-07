@@ -93,7 +93,7 @@ export function KPIDashboard({ sessions, templates, onResumeSession }: KPIDashbo
 
     // Find matching template
     const template = templates.find(t => t.id === session.checklistId);
-    if (!template) return;
+    if (!template?.sections) return;
 
     let sessionScore = 100;
 

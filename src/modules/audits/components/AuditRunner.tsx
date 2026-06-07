@@ -60,12 +60,13 @@ const RISK_CONFIG = {
 interface AuditRunnerProps {
   schema: ChecklistSchema;
   initialSession?: AuditSessionData | null;
+  currentUser?: { id: string; name: string; email?: string } | null;
   onSave: (session: AuditSessionData, silent?: boolean) => void;
   onComplete: (session: AuditSessionData) => void;
   onBack: () => void;
 }
 
-export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack }: AuditRunnerProps) {
+export function AuditRunner({ schema, initialSession, currentUser, onSave, onComplete, onBack }: AuditRunnerProps) {
   // Setup session state
   const [session, setSession] = useState<AuditSessionData>(() => {
     if (initialSession) return initialSession;
@@ -76,8 +77,8 @@ export function AuditRunner({ schema, initialSession, onSave, onComplete, onBack
       siteId: 'site_1',
       siteName: 'Main Street Corporate Branch',
       clientName: 'Indian Bank',
-      auditorId: 'usr_1',
-      auditorName: 'Dhanasekaran Ravichandran',
+      auditorId: currentUser?.id || 'usr_unknown',
+      auditorName: currentUser?.name || currentUser?.email || 'Auditor',
       status: 'In_Progress',
       startedAt: new Date().toISOString(),
       responses: [],

@@ -1,23 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Nunito, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const nunito = Nunito({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
 
 export const metadata: Metadata = {
   title: "Aura Veritas | Enterprise Checklist Builder & Compliance Engine",
@@ -31,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${nunito.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en">
       <head>
         <meta name="theme-color" content="#1B3D72" />
         <link rel="manifest" href="/manifest.json" />

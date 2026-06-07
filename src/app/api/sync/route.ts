@@ -1,6 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+const LONG_TX_OPTIONS = { maxWait: 60_000, timeout: 120_000 };
+
+let cachedOrgRole: {
+  defaultOrg: Awaited<ReturnType<typeof prisma.organization.findFirst>>;
+  defaultRole: Awaited<ReturnType<typeof prisma.role.findUnique>>;
+} | null = null;
+
+function isDbConnectivityError(err: any): boolean {
+  const message = err?.message || '';
+  return (
+    err?.code === 'P1001' ||
+    /can't reach database server/i.test(message) ||
+    /connection pool/i.test(message) ||
+    /timed out fetching a new connection/i.test(message)
+  );
+}
+
+function isDynamicTemplate(data: any): boolean {
+  return (
+    data.version === 2 &&
+    Array.isArray(data.components) &&
+    !Array.isArray(data.sections)
+  );
+}
+
+function isDynamicSession(data: any): boolean {
+  return Boolean(data.schemaId) || (!data.checklistId && Array.isArray(data.responses));
+}
+
+async function ensureDefaultOrgAndRole() {
+  if (cachedOrgRole?.defaultOrg && cachedOrgRole?.defaultRole) {
+    return cachedOrgRole;
+  }
+
+  let defaultOrg = await prisma.organization.findFirst();
+  if (!defaultOrg) {
+    defaultOrg = await prisma.organization.create({
+      data: { name: 'Default Organization' },
+    });
+  }
+
+  let defaultRole = await prisma.role.findUnique({ where: { name: 'AUDITOR' } });
+  if (!defaultRole) {
+    defaultRole = await prisma.role.create({
+      data: { name: 'AUDITOR' },
+    });
+  }
+
+  cachedOrgRole = { defaultOrg, defaultRole };
+  return cachedOrgRole;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const syncItems = await req.json();
@@ -9,28 +61,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload must be an array of sync items.' }, { status: 400 });
     }
 
+    let defaultOrg;
+    let defaultRole;
+    try {
+      ({ defaultOrg, defaultRole } = await ensureDefaultOrgAndRole());
+    } catch (err: any) {
+      const message = err?.message || 'Database unavailable';
+      const isConnectivity = isDbConnectivityError(err);
+
+      return NextResponse.json(
+        { error: isConnectivity ? 'Database unavailable. Sync will retry when the connection is restored.' : message },
+        { status: isConnectivity ? 503 : 500 }
+      );
+    }
+
     const results = [];
-
-    // Setup helper records (Organization, Role, default User) if not present
-    let defaultOrg = await prisma.organization.findFirst();
-    if (!defaultOrg) {
-      defaultOrg = await prisma.organization.create({
-        data: { name: 'Default Organization' },
-      });
-    }
-
-    let defaultRole = await prisma.role.findUnique({ where: { name: 'AUDITOR' } });
-    if (!defaultRole) {
-      defaultRole = await prisma.role.create({
-        data: { name: 'AUDITOR' },
-      });
-    }
 
     for (const item of syncItems) {
       const { id, type, data } = item;
       try {
+        if (!data?.id) {
+          throw new Error(`Sync item is missing data.id (${type})`);
+        }
+
         if (type === 'publish_template') {
-          const isV2 = data.version === 2 || ('components' in data);
+          const isV2 = isDynamicTemplate(data);
 
           if (isV2) {
             // Sync Dynamic Template V2
@@ -131,11 +186,36 @@ export async function POST(req: NextRequest) {
                   }
                 }
               }
-            });
+            }, LONG_TX_OPTIONS);
           }
+        } else if (type === 'publish_report_layout') {
+          const reportPayload = { ...data, isReport: true };
+          await prisma.checklist.upsert({
+            where: { id: data.id },
+            update: {
+              title: data.title,
+              description: data.description || '',
+              version: 99,
+              status: 'Published',
+              componentsJson: JSON.stringify(reportPayload),
+            },
+            create: {
+              id: data.id,
+              title: data.title,
+              description: data.description || '',
+              version: 99,
+              status: 'Published',
+              componentsJson: JSON.stringify(reportPayload),
+            },
+          });
+        } else if (type === 'delete_report_layout') {
+          await prisma.checklist.deleteMany({
+            where: { id: data.id, version: 99 },
+          });
         } else if (type === 'save_session') {
-          const isV2 = 'schemaId' in data || !('checklistId' in data);
+          const isV2 = isDynamicSession(data);
           const checklistId = isV2 ? data.schemaId : data.checklistId;
+          const sessionOrgId = data.organizationId || defaultOrg.id;
 
           // 1. Ensure template exists in database
           let checklist = await prisma.checklist.findUnique({ where: { id: checklistId } });
@@ -149,21 +229,47 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // 2. Ensure Client exists
+          // 2. Resolve auditor first (scoped to their organization)
+          const auditorName = data.auditorName || 'Default Auditor';
+          let user = data.auditorId
+            ? await prisma.user.findUnique({ where: { id: data.auditorId } })
+            : null;
+
+          if (!user) {
+            user = await prisma.user.findFirst({
+              where: { name: auditorName, organizationId: sessionOrgId },
+            });
+          }
+
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                email: `${auditorName.toLowerCase().replace(/\s+/g, '_')}@example.com`,
+                name: auditorName,
+                passwordHash: 'dummy-hash-offline-sync',
+                organizationId: sessionOrgId,
+                roleId: defaultRole.id,
+              },
+            });
+          }
+
+          const resolvedOrgId = user.organizationId || sessionOrgId;
+
+          // 3. Ensure Client exists (scoped to auditor's organization)
           const clientName = data.clientName || 'Default Client';
           let client = await prisma.client.findFirst({
-            where: { name: clientName, organizationId: defaultOrg.id },
+            where: { name: clientName, organizationId: resolvedOrgId },
           });
           if (!client) {
             client = await prisma.client.create({
               data: {
                 name: clientName,
-                organizationId: defaultOrg.id,
+                organizationId: resolvedOrgId,
               },
             });
           }
 
-          // 3. Ensure Site exists
+          // 4. Ensure Site exists
           const siteName = data.siteName || 'Default Site';
           let site = await prisma.site.findFirst({
             where: { name: siteName, clientId: client.id },
@@ -178,24 +284,7 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // 4. Ensure Auditor/User exists
-          const auditorName = data.auditorName || 'Default Auditor';
-          let user = await prisma.user.findFirst({
-            where: { name: auditorName, organizationId: defaultOrg.id },
-          });
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email: `${auditorName.toLowerCase().replace(/\s+/g, '_')}@example.com`,
-                name: auditorName,
-                passwordHash: 'dummy-hash-offline-sync',
-                organizationId: defaultOrg.id,
-                roleId: defaultRole.id,
-              },
-            });
-          }
-
-          // 5. Upsert Session
+          // (auditor resolved above)
           if (isV2) {
             await prisma.auditSession.upsert({
               where: { id: data.id },
@@ -304,7 +393,7 @@ export async function POST(req: NextRequest) {
                   });
                 }
               }
-            });
+            }, LONG_TX_OPTIONS);
           }
         }
 

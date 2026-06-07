@@ -40,7 +40,8 @@ export const IndexedDBManager = {
   async getTemplates(): Promise<ChecklistSchema[]> {
     const db = await getDB();
     if (!db) return [];
-    return db.getAll('templates');
+    const all = await db.getAll('templates');
+    return all.filter((t: any) => !t.isReport);
   },
 
   async getTemplate(id: string): Promise<ChecklistSchema | undefined> {
@@ -81,7 +82,10 @@ export const IndexedDBManager = {
   },
 
   // --- Sync Queue Store ---
-  async addToSyncQueue(payload: { type: 'save_session' | 'publish_template'; data: any }): Promise<IDBValidKey | undefined> {
+  async addToSyncQueue(payload: {
+    type: 'save_session' | 'publish_template' | 'publish_report_layout' | 'delete_report_layout';
+    data: any;
+  }): Promise<IDBValidKey | undefined> {
     const db = await getDB();
     if (!db) return undefined;
     return db.add('sync-queue', {
@@ -106,5 +110,25 @@ export const IndexedDBManager = {
     const db = await getDB();
     if (!db) return;
     await db.clear('sync-queue');
+  },
+
+  // --- Report Templates Store ---
+  async saveReportTemplate(report: any): Promise<void> {
+    const db = await getDB();
+    if (!db) return;
+    await db.put('templates', { ...report, isReport: true });
+  },
+
+  async getReportTemplates(): Promise<any[]> {
+    const db = await getDB();
+    if (!db) return [];
+    const all = await db.getAll('templates');
+    return all.filter((t: any) => t.isReport === true);
+  },
+
+  async getReportTemplate(id: string): Promise<any | undefined> {
+    const db = await getDB();
+    if (!db) return undefined;
+    return db.get('templates', id);
   }
 };

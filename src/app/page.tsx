@@ -24,7 +24,8 @@ import {
   Plus,
   Search,
   Key,
-  Mail
+  Mail,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChecklistBuilder } from '@/modules/builder/components/ChecklistBuilder';
@@ -35,15 +36,38 @@ import { ChecklistSchema, AuditSessionData, TemplateSectionSchema, TemplateField
 import { DynamicChecklistSchema, DynamicAuditSession } from '@/types/dynamicSchema';
 import { DynamicRunnerView } from '@/modules/components/DynamicRunnerView';
 import { COMPREHENSIVE_DYNAMIC_SCHEMA } from '@/utils/dynamicAuditMock';
+import { ReportBuilder } from '@/modules/builder/components/ReportBuilder';
+import { ReportSchema } from '@/types/reportSchema';
+import {
+  AUDITORS_TEMPLATE,
+  CLIENTS_TEMPLATE,
+  downloadCsv,
+  downloadXlsx,
+  parseSpreadsheetRows,
+} from '@/lib/importTemplates';
 
-type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report' | 'clients' | 'auditors';
+type AppView = 'dashboard' | 'upload' | 'builder' | 'runner' | 'report' | 'clients' | 'auditors' | 'report_builder';
 
 const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('veriaudit-sync-channel') : null;
 
+function filterSessionsForUser(allSessions: AuditSessionData[], user: any | null) {
+  if (!user) return allSessions;
+  if (user.role === 'ADMIN') return allSessions;
+  return allSessions.filter((s) => s.auditorId === user.id);
+}
+
+function sessionHasTemplate(
+  session: AuditSessionData,
+  availableTemplates: (ChecklistSchema & { id: string })[]
+) {
+  return availableTemplates.some((t) => t.id === session.checklistId);
+}
+
 function convertV1ToV2(v1Schema: ChecklistSchema, v1Session: AuditSessionData): { v2Schema: DynamicChecklistSchema; v2Session: DynamicAuditSession } {
   const v2Components: any[] = [];
-  
-  v1Schema.sections.forEach(sec => {
+  const sections = v1Schema.sections || [];
+
+  sections.forEach(sec => {
     if (sec.type === 'header') {
       v2Components.push({
         id: sec.id,
@@ -117,6 +141,13 @@ function convertV1ToV2(v1Schema: ChecklistSchema, v1Session: AuditSessionData): 
         placeholder: 'Auditor Signature',
         required: false
       });
+    } else if (sec.type === 'rich_content') {
+      v2Components.push({
+        id: sec.id,
+        type: 'rich_content',
+        title: sec.title,
+        content: sec.description || ''
+      });
     }
   });
 
@@ -132,7 +163,7 @@ function convertV1ToV2(v1Schema: ChecklistSchema, v1Session: AuditSessionData): 
 
   v1Session.responses.forEach(resp => {
     let belongsToChecklist = false;
-    for (const sec of v1Schema.sections) {
+    for (const sec of sections) {
       if (sec.type === 'checklist' && sec.fields?.some(f => f.id === resp.fieldId)) {
         belongsToChecklist = true;
         let compResp = v2Responses.find(r => r.componentId === sec.id);
@@ -153,7 +184,7 @@ function convertV1ToV2(v1Schema: ChecklistSchema, v1Session: AuditSessionData): 
 
     if (!belongsToChecklist) {
       // Find matching section in v1 schema
-      const fieldSec = v1Schema.sections.find(sec => sec.fields?.some(f => f.id === resp.fieldId));
+      const fieldSec = sections.find(sec => sec.fields?.some(f => f.id === resp.fieldId));
 
       if (fieldSec) {
         if (fieldSec.type === 'header') {
@@ -202,7 +233,7 @@ function convertV1ToV2(v1Schema: ChecklistSchema, v1Session: AuditSessionData): 
     }
   }
 
-  v1Schema.sections.forEach(sec => {
+  sections.forEach(sec => {
     if (sec.type === 'table') {
       (sec.tables || []).forEach(tbl => {
         const tableRows: any[] = [];
@@ -308,19 +339,41 @@ export default function HomePage() {
   const [view, setView] = useState<AppView>('dashboard');
   const [templates, setTemplates] = useState<(ChecklistSchema & { id: string })[]>([]);
   const [sessions, setSessions] = useState<AuditSessionData[]>([]);
+  const [reportLayouts, setReportLayouts] = useState<ReportSchema[]>([]);
+  const [activeReportLayout, setActiveReportLayout] = useState<ReportSchema | null>(null);
   const [activeSchema, setActiveSchema] = useState<ChecklistSchema | null>(null);
   const [activeSession, setActiveSession] = useState<AuditSessionData | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const syncInProgressRef = useRef(false);
+  const syncBackoffUntilRef = useRef(0);
+  const lastSyncErrorRef = useRef('');
 
-  // Authentication State
+  // Authentication State — restored from localStorage to avoid flash on reload
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [syncPendingCount, setSyncPendingCount] = useState(0);
+
+  // Helpers that keep localStorage + state in sync
+  const persistUser = (user: any) => {
+    setCurrentUser(user);
+    try { localStorage.setItem('veriaudit_user', JSON.stringify(user)); } catch { /* ignore */ }
+  };
+  const clearUser = () => {
+    setCurrentUser(null);
+    try { localStorage.removeItem('veriaudit_user'); } catch { /* ignore */ }
+  };
+
+  // View navigation helper — persists active view to sessionStorage
+  const navigateTo = (v: AppView) => {
+    setView(v);
+    try { sessionStorage.setItem('veriaudit_view', v); } catch { /* ignore */ }
+  };
 
   // Clients Master State
   const [clients, setClients] = useState<any[]>([]);
@@ -355,20 +408,40 @@ export default function HomePage() {
       navigator.serviceWorker.register('/sw.js').catch(console.error);
     }
 
-    // Check Auth status
+    // Restore user from localStorage immediately — eliminates the auth-loading flash
+    let restoredUser: any = null;
+    try {
+      const stored = localStorage.getItem('veriaudit_user');
+      if (stored) {
+        restoredUser = JSON.parse(stored);
+        setCurrentUser(restoredUser);
+        setAuthLoading(false); // already have a user — no need to block the UI
+      }
+    } catch { /* ignore */ }
+
+    // Restore last active view from sessionStorage
+    try {
+      const savedView = sessionStorage.getItem('veriaudit_view') as AppView;
+      const validViews: AppView[] = ['dashboard', 'upload', 'builder', 'runner', 'report', 'clients', 'auditors', 'report_builder'];
+      if (savedView && validViews.includes(savedView) && !['builder', 'runner', 'report'].includes(savedView)) {
+        setView(savedView);
+      }
+    } catch { /* ignore */ }
+
+    // Validate / refresh session silently in the background
     fetch('/api/auth/me')
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('Not authenticated');
-      })
+      .then(res => res.ok ? res.json() : { authenticated: false })
       .then(data => {
         if (data.authenticated) {
-          setCurrentUser(data.user);
+          persistUser(data.user);
+        } else {
+          // Session expired — force re-login only if we had a stored user
+          if (restoredUser) clearUser();
         }
         setAuthLoading(false);
       })
       .catch(() => {
-        setCurrentUser(null);
+        // Network error (offline?) — keep the stored user so the app still works
         setAuthLoading(false);
       });
 
@@ -378,16 +451,60 @@ export default function HomePage() {
     };
   }, []);
 
-  // Load data from IndexedDB
+  // Pull templates, report layouts, and audit sessions from live DB → merge into IndexedDB
+  const pullAndMergeFromServer = async () => {
+    if (!navigator.onLine || !currentUser || syncInProgressRef.current) return;
+    try {
+      const queue = await IndexedDBManager.getSyncQueue();
+      const pendingIds = new Set(queue.map((q: any) => q.data?.id).filter(Boolean));
+
+      const serverRes = await fetch('/api/templates');
+      if (serverRes.ok) {
+        const serverItems: any[] = await serverRes.json();
+        for (const item of serverItems) {
+          if (pendingIds.has(item.id)) continue;
+          if (item.isReport) {
+            await IndexedDBManager.saveReportTemplate(item);
+          } else {
+            await IndexedDBManager.saveTemplate(item);
+          }
+        }
+      }
+
+      const sessionsRes = await fetch('/api/sessions');
+      if (sessionsRes.ok) {
+        const serverSessions: AuditSessionData[] = await sessionsRes.json();
+        for (const session of serverSessions) {
+          if (pendingIds.has(session.id)) continue;
+          await IndexedDBManager.saveSession(session);
+        }
+      }
+
+      await reloadLocalData();
+    } catch {
+      /* offline or server unavailable */
+    }
+  };
+
+  const reloadLocalData = async () => {
+    const storedTemplates = await IndexedDBManager.getTemplates();
+    const allSessions = await IndexedDBManager.getSessions();
+    const storedReportLayouts = await IndexedDBManager.getReportTemplates();
+    setTemplates(storedTemplates as (ChecklistSchema & { id: string })[]);
+    setSessions(filterSessionsForUser(allSessions, currentUser));
+    setReportLayouts(storedReportLayouts);
+    const queue = await IndexedDBManager.getSyncQueue();
+    setSyncPendingCount(queue.length);
+  };
+
+  // Load local data and merge from server when authenticated + online
   useEffect(() => {
     if (!mounted) return;
-    (async () => {
-      const storedTemplates = await IndexedDBManager.getTemplates();
-      const storedSessions = await IndexedDBManager.getSessions();
-      setTemplates(storedTemplates as (ChecklistSchema & { id: string })[]);
-      setSessions(storedSessions);
-    })();
-  }, [mounted]);
+    reloadLocalData();
+    if (currentUser && isOnline) {
+      pullAndMergeFromServer();
+    }
+  }, [mounted, currentUser, isOnline]);
 
   // Listen to cross-tab updates via BroadcastChannel
   useEffect(() => {
@@ -395,13 +512,17 @@ export default function HomePage() {
 
     const reloadData = async () => {
       const storedTemplates = await IndexedDBManager.getTemplates();
-      const storedSessions = await IndexedDBManager.getSessions();
+      const allSessions = await IndexedDBManager.getSessions();
+      const storedReportLayouts = await IndexedDBManager.getReportTemplates();
       setTemplates(storedTemplates as (ChecklistSchema & { id: string })[]);
-      setSessions(storedSessions);
+      setSessions(filterSessionsForUser(allSessions, currentUser));
+      setReportLayouts(storedReportLayouts);
+      const queue = await IndexedDBManager.getSyncQueue();
+      setSyncPendingCount(queue.length);
       
       // Update active session if it is being viewed/edited
       if (activeSession) {
-        const freshSession = storedSessions.find(s => s.id === activeSession.id);
+        const freshSession = allSessions.find((s: AuditSessionData) => s.id === activeSession.id);
         if (freshSession) {
           setActiveSession(freshSession);
         }
@@ -409,7 +530,7 @@ export default function HomePage() {
     };
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'TEMPLATES_UPDATED' || event.data.type === 'SESSIONS_UPDATED') {
+      if (event.data.type === 'TEMPLATES_UPDATED' || event.data.type === 'SESSIONS_UPDATED' || event.data.type === 'REPORTS_UPDATED') {
         reloadData();
       }
     };
@@ -435,10 +556,10 @@ export default function HomePage() {
         throw new Error(data.error || 'Login failed');
       }
       if (data.success) {
-        setCurrentUser(data.user);
+        persistUser(data.user);
         setLoginEmail('');
         setLoginPassword('');
-        setView('dashboard');
+        navigateTo('dashboard');
       }
     } catch (err: any) {
       setLoginError(err.message || 'Invalid credentials');
@@ -448,10 +569,12 @@ export default function HomePage() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      setCurrentUser(null);
-      setView('dashboard');
     } catch (e) {
       console.error(e);
+    } finally {
+      clearUser();
+      try { sessionStorage.removeItem('veriaudit_view'); } catch { /* ignore */ }
+      navigateTo('dashboard');
     }
   };
 
@@ -547,38 +670,38 @@ export default function HomePage() {
     }
   };
 
-  const handleImportClientsCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportClientsCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    try {
+      const rows = await parseSpreadsheetRows(file);
       const clientsList = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+      for (let i = 1; i < rows.length; i++) {
+        const cols = rows[i];
         if (cols[0]) {
-          clientsList.push({ name: cols[0] });
+          clientsList.push({ name: String(cols[0]).trim() });
         }
       }
-      
+
       if (clientsList.length > 0) {
-        try {
-          const res = await fetch('/api/clients', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(clientsList)
-          });
-          if (res.ok) {
-            alert(`Successfully imported ${clientsList.length} clients!`);
-            fetchClients();
-          }
-        } catch (err) {
-          console.error(err);
+        const res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clientsList),
+        });
+        if (res.ok) {
+          alert(`Successfully imported ${clientsList.length} clients!`);
+          fetchClients();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Import failed');
         }
       }
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse import file.');
+    }
+    event.target.value = '';
   };
 
   // --- Auditor CRUD Handlers ---
@@ -655,81 +778,116 @@ export default function HomePage() {
     }
   };
 
-  const handleImportAuditorsCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportAuditorsCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    try {
+      const rows = await parseSpreadsheetRows(file);
       const auditorsList = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+      for (let i = 1; i < rows.length; i++) {
+        const cols = rows[i];
         if (cols[0] && cols[1]) {
           auditorsList.push({
-            name: cols[0],
-            email: cols[1],
-            password: cols[2] || 'Welcome@123'
+            name: String(cols[0]).trim(),
+            email: String(cols[1]).trim(),
+            password: cols[2] ? String(cols[2]).trim() : 'Welcome@123',
           });
         }
       }
-      
+
       if (auditorsList.length > 0) {
-        try {
-          const res = await fetch('/api/auditors', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(auditorsList)
-          });
-          if (res.ok) {
-            alert(`Successfully imported ${auditorsList.length} auditors!`);
-            fetchAuditors();
-          }
-        } catch (err) {
-          console.error(err);
+        const res = await fetch('/api/auditors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(auditorsList),
+        });
+        if (res.ok) {
+          alert(`Successfully imported ${auditorsList.length} auditors!`);
+          fetchAuditors();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Import failed');
         }
       }
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse import file.');
+    }
+    event.target.value = '';
   };
 
   // --- Trigger Database Sync ---
   const triggerSync = async () => {
-    if (typeof window === 'undefined' || !navigator.onLine) return;
-    try {
+    if (typeof window === 'undefined' || !navigator.onLine) {
       const queue = await IndexedDBManager.getSyncQueue();
+      setSyncPendingCount(queue.length);
+      return;
+    }
+    if (syncInProgressRef.current) return;
+    if (Date.now() < syncBackoffUntilRef.current) return;
+
+    syncInProgressRef.current = true;
+    let syncedAny = false;
+
+    try {
+      let queue = await IndexedDBManager.getSyncQueue();
+      setSyncPendingCount(queue.length);
       if (queue.length === 0) return;
 
-      console.log(`Syncing ${queue.length} items to database...`);
-      const payload = queue.map(item => ({
-        id: item.id,
-        type: item.type,
-        data: item.data
-      }));
+      while (queue.length > 0) {
+        const item = queue[0];
+        const payload = [{ id: item.id, type: item.type, data: item.data }];
 
-      const res = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      if (!res.ok) throw new Error('Network response was not ok');
-      const result = await res.json();
-      
-      if (result.results && Array.isArray(result.results)) {
-        let successCount = 0;
-        for (const itemResult of result.results) {
-          if (itemResult.status === 'success') {
-            await IndexedDBManager.removeFromSyncQueue(Number(itemResult.id));
-            successCount++;
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          const message = errBody.error || `Sync failed (${res.status})`;
+          if (res.status === 503) {
+            syncBackoffUntilRef.current = Date.now() + 60_000;
+            if (lastSyncErrorRef.current !== message) {
+              lastSyncErrorRef.current = message;
+              console.warn('Offline database sync paused:', message);
+            }
+            break;
           }
+          throw new Error(message);
         }
-        if (successCount > 0) {
-          console.log(`Successfully synced ${successCount} items to database!`);
+
+        lastSyncErrorRef.current = '';
+        syncBackoffUntilRef.current = 0;
+
+        const result = await res.json();
+        const itemResult = result.results?.[0];
+
+        if (itemResult?.status === 'success') {
+          await IndexedDBManager.removeFromSyncQueue(Number(itemResult.id));
+          syncedAny = true;
+          queue = await IndexedDBManager.getSyncQueue();
+          setSyncPendingCount(queue.length);
+          continue;
         }
+
+        console.warn('Sync item failed:', itemResult?.error || 'Unknown sync error');
+        break;
       }
+
+      if (syncedAny) {
+        await pullAndMergeFromServer();
+      }
+
+      const remaining = await IndexedDBManager.getSyncQueue();
+      setSyncPendingCount(remaining.length);
     } catch (err: any) {
       console.error('Offline database sync failed:', err.message);
+      const remaining = await IndexedDBManager.getSyncQueue();
+      setSyncPendingCount(remaining.length);
+    } finally {
+      syncInProgressRef.current = false;
     }
   };
 
@@ -782,7 +940,7 @@ export default function HomePage() {
 
       // Open in builder
       setActiveSchema(schemaWithId);
-      setView('builder');
+      navigateTo('builder');
     } catch (err: any) {
       alert(`Upload error: ${err.message}`);
     } finally {
@@ -803,7 +961,7 @@ export default function HomePage() {
       }))
     };
     setActiveSchema(blankWithId);
-    setView('builder');
+    navigateTo('builder');
   };
 
   // --- Handler: Create Blank Template V2 ---
@@ -817,7 +975,7 @@ export default function HomePage() {
       }))
     };
     setActiveSchema(blankWithId as any);
-    setView('builder');
+    navigateTo('builder');
   };
 
   // --- Handler: Save Draft ---
@@ -867,14 +1025,14 @@ export default function HomePage() {
     triggerSync();
     syncChannel?.postMessage({ type: 'TEMPLATES_UPDATED' });
 
-    setView('dashboard');
+    navigateTo('dashboard');
     alert('Template published successfully!');
   };
 
   // --- Handler: Edit Template ---
   const handleEditTemplate = (template: ChecklistSchema & { id: string }) => {
     setActiveSchema(template);
-    setView('builder');
+    navigateTo('builder');
   };
 
   // --- Handler: Delete Template ---
@@ -885,42 +1043,135 @@ export default function HomePage() {
     syncChannel?.postMessage({ type: 'TEMPLATES_UPDATED' });
   };
 
+  // --- Report Layout Handlers ---
+  const handleCreateReportLayout = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+    const newLayout: ReportSchema = {
+      id: `report_${Math.random().toString(36).substr(2, 9)}`,
+      title: `${template.title} Custom Report`,
+      description: `Custom designed layout for ${template.title}`,
+      auditTemplateId: template.id,
+      version: 1,
+      components: [
+        {
+          id: `layout_sec_${Math.random().toString(36).substr(2, 9)}`,
+          title: `${template.title} Report`,
+          subtitle: 'Facility Inspection & Compliance Audit',
+          type: 'cover_page',
+          style: {
+            themeColor: '#3F51B5',
+            accentColor: '#E91E63'
+          }
+        },
+        {
+          id: `layout_sec_${Math.random().toString(36).substr(2, 9)}`,
+          title: 'Executive Summary',
+          type: 'executive_summary',
+          content: 'This facility audit was executed according to compliance guidelines. Key compliance categories and risk areas are detailed below.'
+        },
+        {
+          id: `layout_sec_${Math.random().toString(36).substr(2, 9)}`,
+          title: 'Compliance KPI Scorecard',
+          type: 'kpi_summary'
+        },
+        {
+          id: `layout_sec_${Math.random().toString(36).substr(2, 9)}`,
+          title: 'Observations Matrix',
+          type: 'observation_matrix',
+          dataMapping: {
+            observationFilter: 'NON_COMPLIANT',
+            includeRemarks: true,
+            includeRecommendations: true
+          }
+        },
+        {
+          id: `layout_sec_${Math.random().toString(36).substr(2, 9)}`,
+          title: 'Audit Findings Photo Gallery',
+          type: 'photo_gallery',
+          style: {
+            alignment: 'center'
+          }
+        }
+      ]
+    };
+    setActiveReportLayout(newLayout);
+  };
+
+  const handleSaveReportLayout = async (layout: ReportSchema) => {
+    await IndexedDBManager.saveReportTemplate(layout);
+    await IndexedDBManager.addToSyncQueue({
+      type: 'publish_report_layout',
+      data: layout,
+    });
+    await reloadLocalData();
+    setActiveReportLayout(null);
+    triggerSync();
+    syncChannel?.postMessage({ type: 'REPORTS_UPDATED' });
+  };
+
+  const handleDeleteReportLayout = async (id: string) => {
+    if (!confirm('Delete this report layout permanently?')) return;
+    await IndexedDBManager.deleteTemplate(id);
+    await IndexedDBManager.addToSyncQueue({
+      type: 'delete_report_layout',
+      data: { id },
+    });
+    await reloadLocalData();
+    triggerSync();
+    syncChannel?.postMessage({ type: 'REPORTS_UPDATED' });
+  };
+
   // --- Handler: Start Audit ---
   const handleStartAudit = (template: ChecklistSchema & { id: string }) => {
     setActiveSchema(template);
     setActiveSession(null);
-    setView('runner');
+    navigateTo('runner');
   };
 
   // --- Handler: Resume Audit ---
-  const handleResumeAudit = (session: AuditSessionData) => {
+  const handleResumeAudit = async (session: AuditSessionData) => {
     let template = templates.find(t => t.id === session.checklistId);
     if (!template) {
-      alert("The template for this session could not be found.");
+      template = (await IndexedDBManager.getTemplate(session.checklistId)) as
+        | (ChecklistSchema & { id: string })
+        | undefined;
+    }
+    if (!template) {
+      alert('The template for this session is no longer available. The audit cannot be resumed.');
       return;
     }
     setActiveSchema(template);
     setActiveSession(session);
-    setView('runner');
+    navigateTo('runner');
   };
 
   // --- Handler: Save Audit Session ---
   const handleSaveSession = async (session: AuditSessionData, silent = false) => {
-    await IndexedDBManager.saveSession(session);
+    const sessionWithUser: AuditSessionData = {
+      ...session,
+      auditorId: session.auditorId || currentUser?.id || session.auditorId,
+      auditorName: session.auditorName || currentUser?.name || currentUser?.email || session.auditorName,
+    };
+
+    await IndexedDBManager.saveSession(sessionWithUser);
     setSessions(prev => {
-      const idx = prev.findIndex(s => s.id === session.id);
+      const idx = prev.findIndex(s => s.id === sessionWithUser.id);
       if (idx > -1) {
         const updated = [...prev];
-        updated[idx] = session;
-        return updated;
+        updated[idx] = sessionWithUser;
+        return filterSessionsForUser(updated, currentUser);
       }
-      return [...prev, session];
+      return filterSessionsForUser([...prev, sessionWithUser], currentUser);
     });
 
     // Queue offline sync
     await IndexedDBManager.addToSyncQueue({
       type: 'save_session',
-      data: session
+      data: {
+        ...sessionWithUser,
+        organizationId: currentUser?.organizationId,
+      },
     });
     triggerSync();
     syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
@@ -932,27 +1183,36 @@ export default function HomePage() {
 
   // --- Handler: Complete Audit ---
   const handleCompleteAudit = async (session: AuditSessionData) => {
-    await IndexedDBManager.saveSession(session);
+    const sessionWithUser: AuditSessionData = {
+      ...session,
+      auditorId: session.auditorId || currentUser?.id || session.auditorId,
+      auditorName: session.auditorName || currentUser?.name || currentUser?.email || session.auditorName,
+    };
+
+    await IndexedDBManager.saveSession(sessionWithUser);
     setSessions(prev => {
-      const idx = prev.findIndex(s => s.id === session.id);
+      const idx = prev.findIndex(s => s.id === sessionWithUser.id);
       if (idx > -1) {
         const updated = [...prev];
-        updated[idx] = session;
-        return updated;
+        updated[idx] = sessionWithUser;
+        return filterSessionsForUser(updated, currentUser);
       }
-      return [...prev, session];
+      return filterSessionsForUser([...prev, sessionWithUser], currentUser);
     });
 
     // Queue offline sync
     await IndexedDBManager.addToSyncQueue({
       type: 'save_session',
-      data: session
+      data: {
+        ...sessionWithUser,
+        organizationId: currentUser?.organizationId,
+      },
     });
     triggerSync();
     syncChannel?.postMessage({ type: 'SESSIONS_UPDATED' });
 
     alert('Audit completed and saved!');
-    setView('dashboard');
+    navigateTo('dashboard');
   };
 
   // --- Handler: Generate Report ---
@@ -985,6 +1245,11 @@ export default function HomePage() {
       return;
     }
 
+    if (!template.sections) {
+      alert('This template has no checklist sections to score.');
+      return;
+    }
+
     // Calculate score
     let score = 100;
     template.sections.forEach(sec => {
@@ -1012,12 +1277,63 @@ export default function HomePage() {
         setReportHtml(data.html);
         setActiveSession(session);
         setActiveSchema(template);
-        setView('report');
+        navigateTo('report');
       } else {
         alert(data.error || 'Report generation failed.');
       }
     } catch (err: any) {
       alert(`Report error: ${err.message}`);
+    }
+  };
+
+  const handleGenerateCustomReport = async (session: AuditSessionData, layoutOption: string) => {
+    const [layoutId, format] = layoutOption.split(':') as [string, 'pdf' | 'docx'];
+    const layout = reportLayouts.find(l => l.id === layoutId);
+    if (!layout) return;
+
+    const template = templates.find(t => t.id === session.checklistId);
+    if (!template) return;
+
+    try {
+      let checklistSchema: DynamicChecklistSchema;
+      let dynamicSession: DynamicAuditSession;
+
+      if (template.version === 2) {
+        checklistSchema = template as any;
+        dynamicSession = session as any;
+      } else {
+        const converted = convertV1ToV2(template, session);
+        checklistSchema = converted.v2Schema;
+        dynamicSession = converted.v2Session;
+      }
+
+      const res = await fetch('/api/reports/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportSchema: layout,
+          session: dynamicSession,
+          checklistSchema,
+          format
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to generate custom report');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${layout.title.replace(/\s+/g, '_')}_Report.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(`Custom Report Generation Error: ${err.message}`);
     }
   };
 
@@ -1178,7 +1494,7 @@ export default function HomePage() {
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-50 bg-card/85 backdrop-blur-xl border-b border-border/80 px-4 py-2.5 sm:px-6 sm:py-3">
         <div className="flex items-center justify-between max-w-[1600px] mx-auto gap-2">
-          <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer shrink-0" onClick={() => setView('dashboard')}>
+          <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer shrink-0" onClick={() => navigateTo('dashboard')}>
             <img src="/av-logo.png" alt="Aura Veritas Logo" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
             <div className="text-left">
               <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-primary font-display">
@@ -1192,14 +1508,15 @@ export default function HomePage() {
             {([
               { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" />, show: true },
               { key: 'upload', label: 'Templates', icon: <FileText className="w-3.5 h-3.5" />, show: currentUser.role === 'ADMIN' || currentUser.role === 'AUDITOR' },
-              { key: 'clients', label: 'Clients', icon: <Building2 className="w-3.5 h-3.5" />, show: currentUser.role === 'ADMIN' },
+              { key: 'report_builder', label: 'Report Designs', icon: <Settings2 className="w-3.5 h-3.5" />, show: currentUser.role === 'ADMIN' || currentUser.role === 'AUDITOR' },
+              { key: 'clients', label: 'Clients', icon: <Building2 className="w-3.5 h-3.5" />, show: currentUser.role === 'ADMIN' || currentUser.role === 'AUDITOR' },
               { key: 'auditors', label: 'Auditors', icon: <Users className="w-3.5 h-3.5" />, show: currentUser.role === 'ADMIN' },
             ] as { key: AppView; label: string; icon: React.ReactNode; show: boolean }[])
               .filter(item => item.show)
               .map(item => (
                 <button
                   key={item.key}
-                  onClick={() => setView(item.key)}
+                  onClick={() => navigateTo(item.key)}
                   className={`flex items-center space-x-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs font-semibold transition-all shrink-0 ${
                     view === item.key
                       ? 'bg-primary/15 text-primary font-bold'
@@ -1227,7 +1544,15 @@ export default function HomePage() {
                 : 'border-[#E8524A]/30 text-[#C03A33] bg-[#FCE4E4]'
             }`}>
               {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              <span className="hidden xs:inline sm:inline">{isOnline ? 'Online' : 'Offline'}</span>
+              <span className="hidden xs:inline sm:inline">
+                {isOnline
+                  ? syncPendingCount > 0
+                    ? `Syncing (${syncPendingCount})`
+                    : 'Online'
+                  : syncPendingCount > 0
+                    ? `Offline (${syncPendingCount} pending)`
+                    : 'Offline'}
+              </span>
             </div>
 
             {/* Logout button */}
@@ -1253,11 +1578,15 @@ export default function HomePage() {
                 <h2 className="text-xl font-black text-foreground">KPI Analytics Dashboard</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Real-time compliance metrics, risk analysis, and audit performance.</p>
               </div>
-              <Button size="sm" onClick={() => setView('upload')} className="bg-primary hover:bg-primary/90">
+              <Button size="sm" onClick={() => navigateTo('upload')} className="bg-primary hover:bg-primary/90">
                 <PlusCircle className="w-4 h-4 mr-2" /> New Template
               </Button>
             </div>
-            <KPIDashboard sessions={sessions} templates={templates} onResumeSession={handleResumeAudit} />
+            <KPIDashboard
+              sessions={sessions.filter((s) => sessionHasTemplate(s, templates))}
+              templates={templates}
+              onResumeSession={handleResumeAudit}
+            />
           </div>
         )}
 
@@ -1270,15 +1599,36 @@ export default function HomePage() {
                   <Building2 className="w-6 h-6 text-primary" />
                   Client Management
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Manage audit clients, business structures, and importing/exporting.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Organization: <strong>{currentUser?.organization?.name || 'Your organization'}</strong>
+                  {' · '}Manage clients scoped to your organization.
+                </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => downloadCsv(CLIENTS_TEMPLATE.csvFilename, CLIENTS_TEMPLATE.headers, CLIENTS_TEMPLATE.sampleRows)}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Sample CSV
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => downloadXlsx(CLIENTS_TEMPLATE.xlsxFilename, CLIENTS_TEMPLATE.headers, CLIENTS_TEMPLATE.sampleRows)}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Sample XLSX
+                </Button>
                 <label className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold cursor-pointer transition-all">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  Import CSV
+                  <Upload className="w-4 h-4" />
+                  Import CSV/XLSX
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleImportClientsCSV}
                     className="hidden"
                   />
@@ -1375,15 +1725,36 @@ export default function HomePage() {
                   <Users className="w-6 h-6 text-primary" />
                   Auditor Management
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Manage organization audit personnel, login credentials, and roles.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Organization: <strong>{currentUser?.organization?.name || 'Your organization'}</strong>
+                  {' · '}Manage auditors and credentials for your organization.
+                </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => downloadCsv(AUDITORS_TEMPLATE.csvFilename, AUDITORS_TEMPLATE.headers, AUDITORS_TEMPLATE.sampleRows)}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Sample CSV
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => downloadXlsx(AUDITORS_TEMPLATE.xlsxFilename, AUDITORS_TEMPLATE.headers, AUDITORS_TEMPLATE.sampleRows)}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Sample XLSX
+                </Button>
                 <label className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold cursor-pointer transition-all">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  Import CSV
+                  <Upload className="w-4 h-4" />
+                  Import CSV/XLSX
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleImportAuditorsCSV}
                     className="hidden"
                   />
@@ -1519,7 +1890,7 @@ export default function HomePage() {
             </div>
 
             {/* Upload Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* DOCX Upload Card */}
               <div
                 onClick={() => fileInputRef.current?.click()}
@@ -1555,6 +1926,20 @@ export default function HomePage() {
                   <span className="text-sm font-bold text-foreground block">Create Standard Template (v1)</span>
                   <span className="text-[10px] text-muted-foreground block mt-1">
                     Build classic checklists with custom sections, tables, signatures, dropdowns, and layouts.
+                  </span>
+                </div>
+              </div>
+
+              {/* Blank Template Card (V2) */}
+              <div
+                onClick={handleCreateBlankV2}
+                className="glass-panel p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:border-primary/40 group min-h-[200px]"
+              >
+                <Sparkles className="w-10 h-10 text-indigo-400 group-hover:text-primary transition-colors group-hover:scale-110 transition-transform" />
+                <div className="text-center">
+                  <span className="text-sm font-bold text-foreground block">Create Dynamic Template (v2)</span>
+                  <span className="text-[10px] text-muted-foreground block mt-1">
+                    Build next-gen responsive component checksheets with advanced layout items, calculations, and inputs.
                   </span>
                 </div>
               </div>
@@ -1598,17 +1983,27 @@ export default function HomePage() {
                   <div className="mt-8 space-y-4">
                     <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">In-Progress Audit Sessions</h3>
                     <div className="space-y-3">
-                      {sessions.filter(s => s.status === 'In_Progress').map(session => (
+                      {sessions.filter(s => s.status === 'In_Progress').map(session => {
+                        const canResume = sessionHasTemplate(session, templates);
+                        return (
                         <div key={session.id} className="glass-panel p-4 flex items-center justify-between">
                           <div>
                             <span className="text-xs font-bold text-foreground block">{session.siteName}</span>
-                            <span className="text-[10px] text-muted-foreground">{session.clientName} • Started {new Date(session.startedAt).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {session.clientName} • Started {new Date(session.startedAt).toLocaleDateString()}
+                              {!canResume && ' • Template missing'}
+                            </span>
                           </div>
-                          <Button size="sm" onClick={() => handleResumeAudit(session)} className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
-                            <Pencil className="w-3.5 h-3.5 mr-1" /> Edit / Resume
-                          </Button>
+                          {canResume ? (
+                            <Button size="sm" onClick={() => handleResumeAudit(session)} className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                              <Pencil className="w-3.5 h-3.5 mr-1" /> Edit / Resume
+                            </Button>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">Unavailable</span>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1618,17 +2013,44 @@ export default function HomePage() {
                   <div className="mt-8 space-y-4">
                     <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Completed Audit Sessions</h3>
                     <div className="space-y-3">
-                      {sessions.filter(s => s.status === 'Completed').map(session => (
-                        <div key={session.id} className="glass-panel p-4 flex items-center justify-between">
-                          <div>
-                            <span className="text-xs font-bold text-foreground block">{session.siteName}</span>
-                            <span className="text-[10px] text-muted-foreground">{session.clientName} • Completed {session.completedAt ? new Date(session.completedAt).toLocaleDateString() : ''}</span>
+                      {sessions.filter(s => s.status === 'Completed').map(session => {
+                        const linkedLayouts = reportLayouts.filter(l => l.auditTemplateId === session.checklistId);
+                        return (
+                          <div key={session.id} className="glass-panel p-4 flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-bold text-foreground block">{session.siteName}</span>
+                              <span className="text-[10px] text-muted-foreground">{session.clientName} • Completed {session.completedAt ? new Date(session.completedAt).toLocaleDateString() : ''}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button size="sm" variant="outline" onClick={() => handleGenerateReport(session)} className="h-8 text-xs">
+                                <Printer className="w-3.5 h-3.5 mr-1" /> Preview
+                              </Button>
+                              {linkedLayouts.map(layout => (
+                                <React.Fragment key={layout.id}>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white font-semibold"
+                                    onClick={() => handleGenerateCustomReport(session, `${layout.id}:pdf`)}
+                                    title={`${layout.title} — PDF`}
+                                  >
+                                    <FileText className="w-3.5 h-3.5 mr-1" />
+                                    PDF
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                                    onClick={() => handleGenerateCustomReport(session, `${layout.id}:docx`)}
+                                    title={`${layout.title} — Word`}
+                                  >
+                                    <FileSpreadsheet className="w-3.5 h-3.5 mr-1" />
+                                    Word
+                                  </Button>
+                                </React.Fragment>
+                              ))}
+                            </div>
                           </div>
-                          <Button size="sm" variant="outline" onClick={() => handleGenerateReport(session)} className="h-8 text-xs">
-                            <Printer className="w-3.5 h-3.5 mr-1" /> Generate PDF Report
-                          </Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1651,9 +2073,10 @@ export default function HomePage() {
           <AuditRunner
             schema={activeSchema}
             initialSession={activeSession}
+            currentUser={currentUser}
             onSave={handleSaveSession}
             onComplete={handleCompleteAudit}
-            onBack={() => setView('upload')}
+            onBack={() => navigateTo('upload')}
           />
         )}
 
@@ -1663,7 +2086,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black text-foreground">Report Preview</h2>
               <div className="flex items-center space-x-3">
-                <Button size="sm" variant="outline" onClick={() => setView('dashboard')} className="h-8 text-xs">
+                <Button size="sm" variant="outline" onClick={() => navigateTo('dashboard')} className="h-8 text-xs">
                   ← Back to Dashboard
                 </Button>
                 <Button size="sm" onClick={handleExportV1Pdf} className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700">
@@ -1685,6 +2108,119 @@ export default function HomePage() {
               />
             </div>
           </div>
+        )}
+
+        {/* REPORT BUILDER VIEW */}
+        {view === 'report_builder' && (
+          activeReportLayout ? (
+            <ReportBuilder
+              initialSchema={activeReportLayout}
+              onPublish={handleSaveReportLayout}
+              onSaveDraft={handleSaveReportLayout}
+              onBack={() => setActiveReportLayout(null)}
+              auditTemplates={templates as any}
+            />
+          ) : (
+            <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-8 animate-in fade-in duration-300">
+              <div className="flex justify-between items-center gap-4">
+                <div className="flex items-start gap-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigateTo('dashboard')}
+                    className="h-8 text-xs shrink-0 mt-0.5"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back
+                  </Button>
+                  <div>
+                    <h2 className="text-xl font-black text-foreground">Custom Report Designs</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Design premium custom PDF &amp; Word layouts. Saved offline in IndexedDB and synced to the live database when online.
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  {templates.length > 0 ? (
+                    <div className="flex gap-2">
+                      <select
+                        id="layout-template-select"
+                        className="bg-card border border-border rounded-lg text-xs px-3 py-1.5 focus:outline-none focus:border-primary"
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleCreateReportLayout(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                      >
+                        <option value="">+ Design New Layout...</option>
+                        {templates.map(t => (
+                          <option key={t.id} value={t.id}>{t.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground bg-muted p-2 rounded-lg">Create a template first to design reports.</span>
+                  )}
+                </div>
+              </div>
+
+              {reportLayouts.length === 0 ? (
+                <div className="glass-panel p-16 text-center space-y-3">
+                  <Settings2 className="w-12 h-12 text-primary/45 mx-auto animate-spin duration-10000" />
+                  <h3 className="text-sm font-bold text-foreground">No Custom Layouts Designed Yet</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Select a checklist template from the dropdown above to launch the premium report layout designer.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {reportLayouts.map(layout => {
+                    const linkedTemplate = templates.find(t => t.id === layout.auditTemplateId);
+                    return (
+                      <div key={layout.id} className="glass-panel p-5 flex flex-col justify-between space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="text-sm font-black text-foreground block">{layout.title}</span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                              Linked Template: <strong className="text-primary">{linkedTemplate ? linkedTemplate.title : 'Unknown'}</strong>
+                            </span>
+                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{layout.description}</p>
+                          </div>
+                          <span 
+                            className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase bg-indigo-500/20 text-indigo-400"
+                          >
+                            Theme: Custom
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3 border-t border-border/40">
+                          <span className="text-[10px] text-muted-foreground">{layout.components.length} layout sections</span>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => setActiveReportLayout(layout)}
+                              className="h-8 text-xs"
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={() => handleDeleteReportLayout(layout.id)}
+                              className="h-8 text-xs text-destructive"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )
         )}
 
 

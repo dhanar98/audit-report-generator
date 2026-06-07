@@ -14,6 +14,7 @@ import {
   VerticalAlign
 } from 'docx';
 import { DynamicChecklistSchema, DynamicAuditSession, DynamicComponentResponse } from '@/types/dynamicSchema';
+import * as cheerio from 'cheerio';
 
 // Helpers to extract base64 data safely
 function getBase64Buffer(base64Str: string): Buffer | null {
@@ -24,6 +25,120 @@ function getBase64Buffer(base64Str: string): Buffer | null {
   } catch (e) {
     return null;
   }
+}
+
+function addRichContentToDocx(html: string, children: any[]) {
+  const $ = cheerio.load(html);
+  
+  $('body').children().each((_, el) => {
+    const $el = $(el);
+    const tagName = el.tagName.toLowerCase();
+    
+    if (tagName.startsWith('h')) {
+      const levelNum = parseInt(tagName.substring(1));
+      let headingLvl: any = HeadingLevel.HEADING_2;
+      let size = 24; // 12pt
+      
+      if (levelNum === 1) { headingLvl = HeadingLevel.HEADING_1; size = 32; }
+      else if (levelNum === 2) { headingLvl = HeadingLevel.HEADING_2; size = 28; }
+      else if (levelNum === 3) { headingLvl = HeadingLevel.HEADING_3; size = 24; }
+      else if (levelNum === 4) { headingLvl = HeadingLevel.HEADING_4; size = 20; }
+      
+      children.push(
+        new Paragraph({
+          heading: headingLvl,
+          spacing: { before: 200, after: 100 },
+          children: [
+            new TextRun({
+              text: $el.text().trim(),
+              bold: true,
+              size,
+              color: "1e3a8a"
+            })
+          ]
+        })
+      );
+    } 
+    
+    else if (tagName === 'p') {
+      const runs: TextRun[] = [];
+      
+      $el.contents().each((_, child) => {
+        const text = $(child).text();
+        if (child.type === 'text') {
+          runs.push(new TextRun({ text }));
+        } else if (child.type === 'tag') {
+          const childTag = child.tagName.toLowerCase();
+          const isBold = childTag === 'strong' || childTag === 'b';
+          const isItalic = childTag === 'em' || childTag === 'i';
+          runs.push(new TextRun({
+            text,
+            bold: isBold,
+            italics: isItalic
+          }));
+        }
+      });
+      
+      if (runs.length > 0) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 120 },
+            children: runs
+          })
+        );
+      }
+    }
+    
+    else if (tagName === 'ul' || tagName === 'ol') {
+      $el.find('li').each((_, liEl) => {
+        const $li = $(liEl);
+        const runs: TextRun[] = [];
+        
+        $li.contents().each((_, child) => {
+          const text = $(child).text();
+          if (child.type === 'text') {
+            runs.push(new TextRun({ text }));
+          } else if (child.type === 'tag') {
+            const childTag = child.tagName.toLowerCase();
+            const isBold = childTag === 'strong' || childTag === 'b';
+            const isItalic = childTag === 'em' || childTag === 'i';
+            runs.push(new TextRun({
+              text,
+              bold: isBold,
+              italics: isItalic
+            }));
+          }
+        });
+        
+        children.push(
+          new Paragraph({
+            bullet: { level: 0 },
+            spacing: { after: 80 },
+            children: runs
+          })
+        );
+      });
+    }
+    
+    else if (tagName === 'img') {
+      const src = $el.attr('src') || '';
+      const buf = getBase64Buffer(src);
+      if (buf) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 120, after: 120 },
+            children: [
+              new ImageRun({
+                data: buf,
+                transformation: { width: 450, height: 337 }
+              } as any)
+            ]
+          })
+        );
+      }
+    }
+  });
 }
 
 export async function generateDocx(schema: DynamicChecklistSchema, session: DynamicAuditSession): Promise<Buffer> {
@@ -194,53 +309,85 @@ export async function generateDocx(schema: DynamicChecklistSchema, session: Dyna
     }
 
     else if (comp.type === 'rich_content') {
-      const plainText = comp.content.replace(/<[^>]*>/g, ''); // strip HTML
-      children.push(
-        new Paragraph({
-          spacing: { after: 200 },
-          children: [new TextRun({ text: plainText, color: "334155" })]
-        })
-      );
+      addRichContentToDocx(comp.content, children);
     }
 
     else if (comp.type === 'checklist') {
-      // Checklist table header
-      const tableRows = [
-        new TableRow({
-          children: [
-            new TableCell({ width: { size: 70, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Compliance Checkpoint / Question", bold: true })] })] }),
-            new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true })] })] }),
-            new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Risk Level", bold: true })] })] })
-          ]
-        })
-      ];
+      const isSafety = comp.title.toUpperCase().includes('SAFETY') || comp.title.toUpperCase().includes('QUESTIONNAIRE');
+      const tableRows: TableRow[] = [];
 
-      comp.items.forEach(item => {
-        const ans = resp?.checklistAnswers?.find(a => a.itemId === item.id);
-        const statusVal = ans?.value || 'UNANSWERED';
-        
+      if (isSafety) {
+        // Safety questionnaire headers: S.NO. | DESCRIPTION | DETAILS | REMARKS
         tableRows.push(
           new TableRow({
             children: [
-              new TableCell({ children: [new Paragraph({ text: item.question })] }),
-              new TableCell({ 
-                children: [
-                  new Paragraph({ 
-                    children: [
-                      new TextRun({ 
-                        text: statusVal, 
-                        bold: true, 
-                        color: statusVal === 'YES' ? "10b981" : statusVal === 'NO' ? "ef4444" : "64748b" 
-                      })
-                    ] 
-                  })
-                ] 
-              }),
-              new TableCell({ children: [new Paragraph({ text: item.riskLevel })] })
+              new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "S.NO.", bold: true })] })] }),
+              new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "DESCRIPTION", bold: true })] })] }),
+              new TableCell({ width: { size: 20, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "DETAILS", bold: true })] })] }),
+              new TableCell({ width: { size: 20, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "REMARKS", bold: true })] })] })
             ]
           })
         );
-      });
+
+        comp.items.forEach((item, idx) => {
+          const ans = resp?.checklistAnswers?.find(a => a.itemId === item.id);
+          const val = ans?.value || '';
+          const remarks = ans?.remarks || '';
+          
+          let detailsText = '☐YES / ☐NO';
+          if (val === 'YES') detailsText = '☒YES / ☐NO';
+          else if (val === 'NO') detailsText = '☐YES / ☒NO';
+
+          tableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(idx + 1) })] })] }),
+                new TableCell({ children: [new Paragraph({ text: item.question })] }),
+                new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: detailsText, bold: true })] })] }),
+                new TableCell({ children: [new Paragraph({ text: remarks })] })
+              ]
+            })
+          );
+        });
+      } else {
+        // Checklist table header
+        tableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({ width: { size: 70, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Compliance Checkpoint / Question", bold: true })] })] }),
+              new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true })] })] }),
+              new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Risk Level", bold: true })] })] })
+            ]
+          })
+        );
+
+        comp.items.forEach(item => {
+          const ans = resp?.checklistAnswers?.find(a => a.itemId === item.id);
+          const statusVal = ans?.value || 'UNANSWERED';
+          
+          tableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ text: item.question })] }),
+                new TableCell({ 
+                  children: [
+                    new Paragraph({ 
+                      children: [
+                        new TextRun({ 
+                          text: statusVal, 
+                          bold: true, 
+                          color: statusVal === 'YES' ? "10b981" : statusVal === 'NO' ? "ef4444" : "64748b" 
+                        })
+                      ] 
+                    })
+                  ] 
+                }),
+                new TableCell({ children: [new Paragraph({ text: item.riskLevel })] })
+              ]
+            })
+          );
+        });
+      }
 
       children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tableRows }), new Paragraph({ spacing: { after: 200 } }));
 
